@@ -40,6 +40,8 @@ for i=2:K
     Xtest(:, i) = makeTimeStepRK4(Xtest(:, i - 1));
 end
 
+[E,~,~] = svd(Xtrain); % use POD basis
+
 %% time step full model with stimulating force with forward Euler
 n_max = max(nList);
 Vmax = E(:,1:n_max);
@@ -49,8 +51,8 @@ Xstim = zeros(N,r_star_max+1);
 % B = basis_lin_quad(n_max);
 B = eye(n_max); % linear only!
 
-% dts = 10.^(-20:15)
-dts = 10.^-20;
+dts = 10.^(-20:15)
+% dts = 10.^-20;
 % dts = 10.^15;
 n_dt = numel(dts);
 reconstruction_errors = zeros(n_dt,1);
