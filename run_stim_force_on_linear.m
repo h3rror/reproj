@@ -48,38 +48,54 @@ r_star_max = n_max;
 Xstim = zeros(N,r_star_max+1);
 % B = basis_lin_quad(n_max);
 B = eye(n_max); % linear only!
-x = Vmax*B(:,1);
-Xstim(:,1) = x;
-dt = deltaT;
-t = 0;
-%% blackbox
-for i = 2:r_star_max+1
-    x = x + dt*tcA*x + dt*stimulating_force(x,t,dt,B,Vmax);
-    t = t + dt;
-    Xstim(:,i) = x;
+
+% dts = 10.^(-20:15)
+dts = 10.^-20;
+% dts = 10.^15;
+n_dt = numel(dts);
+reconstruction_errors = zeros(n_dt,1);
+
+tcA_r = Vmax'*tcA*Vmax
+
+for j=1:n_dt
+    dt = dts(j)
+    % dt = deltaT;
+    t = 0;
+    x = Vmax*B(:,1);
+    Xstim(:,1) = x;
+    %% blackbox
+    for i = 2:r_star_max+1
+        x = x + dt*tcA*x + dt*stimulating_force(x,t,dt,B,Vmax);
+        t = t + dt;
+        Xstim(:,i) = x;
+    end
+    %%
+
+    XstimProj = Vmax'*Xstim;
+
+    Xf = zeros(N,r_star_max);
+    for i=1:r_star_max
+        t = (i-1)*dt;
+        Xf(:,i) = dt*stimulating_force(Xstim(:,i),t,dt,B,Vmax);
+    end
+
+    XfProj = Vmax'*Xf;
+
+    An = XstimProj(:,1:r_star_max);
+    Anp1 = XstimProj(:,2:end) - XfProj;
+    Adot = (Anp1 - An)/dt;
+
+    Astim = (An'\Adot')'
+
+    reconstruction_errors(j) = norm(Astim-tcA_r)
 end
-%%
 
-XstimProj = Vmax'*Xstim;
+figure
+loglog(dts,reconstruction_errors,'x:')
 
-Xf = zeros(N,r_star_max);
-for i=1:r_star_max
-    t = (i-1)*dt;
-    Xf(:,i) = dt*stimulating_force(Xstim(:,i),t,dt,B,Vmax);
-end
-
-XfProj = Vmax'*Xf;
-
-An = XstimProj(:,1:r_star_max);
-Anp1 = XstimProj(:,2:end) - XfProj;
-Adot = (Anp1 - An)/dt;
-
-Astim = (An'\Adot')';
-
-tcA_r = Vmax'*tcA*Vmax;
-
-norm(Astim-tcA_r)
-
+title("dependency of ROM operator error on dt (linear operator only)")
+ylabel("||A_{stim} - A_{intr}||_2")
+xlabel("\Delta t")
     
 
 for n=nList
