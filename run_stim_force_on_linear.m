@@ -40,6 +40,48 @@ for i=2:K
     Xtest(:, i) = makeTimeStepRK4(Xtest(:, i - 1));
 end
 
+%% time step full model with stimulating force with forward Euler
+n_max = max(nList);
+Vmax = E(:,1:n_max);
+% r_star_max = r_star_lin_quad(n_max);
+r_star_max = n_max;
+Xstim = zeros(N,r_star_max+1);
+% B = basis_lin_quad(n_max);
+B = eye(n_max); % linear only!
+x = Vmax*B(:,1);
+Xstim(:,1) = x;
+dt = deltaT;
+t = 0;
+%% blackbox
+for i = 2:r_star_max+1
+    x = x + dt*tcA*x + dt*stimulating_force(x,t,dt,B,Vmax);
+    t = t + dt;
+    Xstim(:,i) = x;
+end
+%%
+
+XstimProj = Vmax'*Xstim;
+
+Xf = zeros(N,r_star_max);
+for i=1:r_star_max
+    t = (i-1)*dt;
+    Xf(:,i) = dt*stimulating_force(Xstim(:,i),t,dt,B,Vmax);
+end
+
+XfProj = Vmax'*Xf;
+
+An = XstimProj(:,1:r_star_max);
+Anp1 = XstimProj(:,2:end) - XfProj;
+Adot = (Anp1 - An)/dt;
+
+Astim = (An'\Adot')';
+
+tcA_r = Vmax'*tcA*Vmax;
+
+norm(Astim-tcA_r)
+
+    
+
 for n=nList
     %% Construct basis and project full-model trajectory
     V = E(:, 1:n);
