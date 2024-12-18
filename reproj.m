@@ -79,14 +79,15 @@ for n=nList
     end
     
     %% plot
+    marker_inds = 1:10:100;
     figure;
-    plot(sqrt(sum(XtestProj.^2, 1)), '--g', 'LineWidth', 2);
+    plot(sqrt(sum(XtestProj.^2, 1)), '--g', 'LineWidth', 2,'MarkerIndices',marker_inds);
     hold on;
-    plot(sqrt(sum(XtestIntMOR.^2, 1)), '-ok', 'LineWidth', 2);
+    plot(sqrt(sum(XtestIntMOR.^2, 1)), '-ok', 'LineWidth', 2,'MarkerIndices',marker_inds);
     hold on;
-    plot(sqrt(sum(XtestOpInf.^2, 1)), '-sr', 'LineWidth', 2);
+    plot(sqrt(sum(XtestOpInf.^2, 1)), '-sr', 'LineWidth', 2,'MarkerIndices',marker_inds);
     hold on;
-    plot(sqrt(sum(XtestOpInfReProj.^2, 1)), '-mx', 'LineWidth', 2);
+    plot(sqrt(sum(XtestOpInfReProj.^2, 1)), '-mx', 'LineWidth', 2,'MarkerIndices',marker_inds);
     xlabel('time step k');
     ylabel('2-norm of states');
     legend('projected', 'intrusive model reduction', 'OpInf, w/out re-proj', 'OpInf, re-proj');
