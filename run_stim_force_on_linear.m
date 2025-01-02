@@ -99,7 +99,7 @@ for j=1:n_dt
     Vn = Xstim(:,1:end-1);
     Vn1 = Xstim(:,2:end);
 
-    Cn = tcA*Vn;
+    Cn = tcA*(Vn-Vmax*Vmax'*Vn)/dt;
 
     dt_opt(j,:) = sqrt(vecwise_2norm(Vmax'*(Vn+Vn1))./vecwise_2norm(Vmax'*Cn)*eps)
 
@@ -114,75 +114,75 @@ ylabel("||A_{stim} - A_{intr}||_2")
 xlabel("\Delta t")
 
 
-    
+ 5
 
-for n=nList
-    %% Construct basis and project full-model trajectory
-    V = E(:, 1:n);
-    XtrainProj = V'*Xtrain;
-    XtestProj = V'*Xtest;
-    
-    %% Re-project
-    XtrainReProj = zeros(n, K);
-    XtrainReProj(:, 1) = V'*Xtrain(:, 1);
-    for i=2:K
-        XtrainReProj(:, i) = V'*makeTimeStepRK4(V*XtrainReProj(:, i - 1));
-    end
-    
-    %% Intrusive model reduction
-    Ar = V'*A*V;
-    
-    %% Operator inference without re-proj
-    ArOpInf = (XtrainProj(:, 1:K-1)'\XtrainProj(:, 2:K)')';
-    norm(Ar - ArOpInf)
-    
-    %% Operator inference with re-proj
-    ArOpInfReProj = (XtrainReProj(:, 1:K-1)'\XtrainReProj(:, 2:K)')';
-    norm(Ar - ArOpInfReProj)
-    
-    %% Time stepping reduced models
-    XtestIntMOR = zeros(n, K);
-    XtrainIntMOR = zeros(n, K);
-    XtestIntMOR(:, 1) = V'*Xtest(:, 1);
-    XtrainIntMOR(:, 1) = V'*Xtrain(:, 1);
-    XtestOpInf = zeros(n, K);
-    XtestOpInf(:, 1) = V'*Xtest(:, 1);
-    XtestOpInfReProj = zeros(n, K);
-    XtestOpInfReProj(:, 1) = V'*Xtest(:, 1);
-    for i=2:K
-        XtestIntMOR(:, i) = Ar*XtestIntMOR(:, i - 1);
-        XtrainIntMOR(:, i) = Ar*XtrainIntMOR(:, i - 1);
-        XtestOpInf(:, i) = ArOpInf*XtestOpInf(:, i - 1);
-        XtestOpInfReProj(:, i) = ArOpInfReProj*XtestOpInfReProj(:, i - 1);
-    end
-    
-    %% plot
-    marker_inds = 1:10:100;
-    figure;
-    plot(sqrt(sum(XtestProj.^2, 1)), '--g', 'LineWidth', 2,'MarkerIndices',marker_inds);
-    hold on;
-    plot(sqrt(sum(XtestIntMOR.^2, 1)), '-ok', 'LineWidth', 2,'MarkerIndices',marker_inds);
-    hold on;
-    plot(sqrt(sum(XtestOpInf.^2, 1)), '-sr', 'LineWidth', 2,'MarkerIndices',marker_inds);
-    hold on;
-    plot(sqrt(sum(XtestOpInfReProj.^2, 1)), '-mx', 'LineWidth', 2,'MarkerIndices',marker_inds);
-    xlabel('time step k');
-    ylabel('2-norm of states');
-    legend('projected', 'intrusive model reduction', 'OpInf, w/out re-proj', 'OpInf, re-proj');
-    title(['Dimension n = ', num2str(n)]);
-    axis([-Inf Inf 0 1.6]);
-    
-end
-
-end
-
-function rhs = myRK4(f, deltaT, x)
-% Runge Kutta 4th order discretization in time
-
-k1 = deltaT*f(x);
-k2 = deltaT*f(x + k1/2);
-k3 = deltaT*f(x + k2/2);
-k4 = deltaT*f(x + k3);
-rhs = x + 1/6*(k1 + 2*k2 + 2*k3 + k4);
+% for n=nList
+%     %% Construct basis and project full-model trajectory
+%     V = E(:, 1:n);
+%     XtrainProj = V'*Xtrain;
+%     XtestProj = V'*Xtest;
+% 
+%     %% Re-project
+%     XtrainReProj = zeros(n, K);
+%     XtrainReProj(:, 1) = V'*Xtrain(:, 1);
+%     for i=2:K
+%         XtrainReProj(:, i) = V'*makeTimeStepRK4(V*XtrainReProj(:, i - 1));
+%     end
+% 
+%     %% Intrusive model reduction
+%     Ar = V'*A*V;
+% 
+%     %% Operator inference without re-proj
+%     ArOpInf = (XtrainProj(:, 1:K-1)'\XtrainProj(:, 2:K)')';
+%     norm(Ar - ArOpInf)
+% 
+%     %% Operator inference with re-proj
+%     ArOpInfReProj = (XtrainReProj(:, 1:K-1)'\XtrainReProj(:, 2:K)')';
+%     norm(Ar - ArOpInfReProj)
+% 
+%     %% Time stepping reduced models
+%     XtestIntMOR = zeros(n, K);
+%     XtrainIntMOR = zeros(n, K);
+%     XtestIntMOR(:, 1) = V'*Xtest(:, 1);
+%     XtrainIntMOR(:, 1) = V'*Xtrain(:, 1);
+%     XtestOpInf = zeros(n, K);
+%     XtestOpInf(:, 1) = V'*Xtest(:, 1);
+%     XtestOpInfReProj = zeros(n, K);
+%     XtestOpInfReProj(:, 1) = V'*Xtest(:, 1);
+%     for i=2:K
+%         XtestIntMOR(:, i) = Ar*XtestIntMOR(:, i - 1);
+%         XtrainIntMOR(:, i) = Ar*XtrainIntMOR(:, i - 1);
+%         XtestOpInf(:, i) = ArOpInf*XtestOpInf(:, i - 1);
+%         XtestOpInfReProj(:, i) = ArOpInfReProj*XtestOpInfReProj(:, i - 1);
+%     end
+% 
+%     %% plot
+%     marker_inds = 1:10:100;
+%     figure;
+%     plot(sqrt(sum(XtestProj.^2, 1)), '--g', 'LineWidth', 2,'MarkerIndices',marker_inds);
+%     hold on;
+%     plot(sqrt(sum(XtestIntMOR.^2, 1)), '-ok', 'LineWidth', 2,'MarkerIndices',marker_inds);
+%     hold on;
+%     plot(sqrt(sum(XtestOpInf.^2, 1)), '-sr', 'LineWidth', 2,'MarkerIndices',marker_inds);
+%     hold on;
+%     plot(sqrt(sum(XtestOpInfReProj.^2, 1)), '-mx', 'LineWidth', 2,'MarkerIndices',marker_inds);
+%     xlabel('time step k');
+%     ylabel('2-norm of states');
+%     legend('projected', 'intrusive model reduction', 'OpInf, w/out re-proj', 'OpInf, re-proj');
+%     title(['Dimension n = ', num2str(n)]);
+%     axis([-Inf Inf 0 1.6]);
+% 
+% end
+% 
+% end
+% 
+% function rhs = myRK4(f, deltaT, x)
+% % Runge Kutta 4th order discretization in time
+% 
+% k1 = deltaT*f(x);
+% k2 = deltaT*f(x + k1/2);
+% k3 = deltaT*f(x + k2/2);
+% k4 = deltaT*f(x + k3);
+% rhs = x + 1/6*(k1 + 2*k2 + 2*k3 + k4);
 
 end
