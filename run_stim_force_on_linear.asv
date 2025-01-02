@@ -40,6 +40,8 @@ for i=2:K
     Xtest(:, i) = makeTimeStepRK4(Xtest(:, i - 1));
 end
 
+[E,~,~] = svd(Xtrain); % use POD basis
+
 %% time step full model with stimulating force with forward Euler
 n_max = max(nList);
 Vmax = E(:,1:n_max);
@@ -48,21 +50,22 @@ r_star_max = n_max;
 Xstim = zeros(N,r_star_max+1);
 % B = basis_lin_quad(n_max);
 B = eye(n_max); % linear only!
-x = Vmax*B(:,1);
-Xstim(:,1) = x;
 
-
-dts = 10.^(-5:5);
-% dts = 10.^-1;
+% dts = 10.^(-20:15)
+dts = 10.^-20;
+% dts = 10.^15;
+% dts = 10.^-6;
 n_dt = numel(dts);
 reconstruction_errors = zeros(n_dt,1);
 
-tcA_r = Vmax'*tcA*Vmax;
+tcA_r = Vmax'*tcA*Vmax
 
 for j=1:n_dt
     dt = dts(j)
     % dt = deltaT;
     t = 0;
+    x = Vmax*B(:,1);
+    Xstim(:,1) = x;
     %% blackbox
     for i = 2:r_star_max+1
         x = x + dt*tcA*x + dt*stimulating_force(x,t,dt,B,Vmax);
@@ -85,13 +88,24 @@ for j=1:n_dt
     Anp1 = XstimProj(:,2:end) - XfProj;
     Adot = (Anp1 - An)/dt;
 
-    Astim = (An'\Adot')';
+    Astim = (An'\Adot')'
 
-    reconstruction_errors(j) = norm(Astim-tcA_r);
+    reconstruction_errors(j) = norm(Astim-tcA_r)
 end
 
+figure
+loglog(dts,reconstruction_errors,'x:')
 
+title("dependency of ROM operator error on dt (linear operator only)")
+ylabel("||A_{stim} - A_{intr}||_2")
+xlabel("\Delta t")
 
+Vn = Xstim(:,1:end-1);
+Vn1 = Xstim(:,2:end);
+
+Cn = tcA*Vn;
+
+dt_opt = sqrt(vecwise_2norm(Vmax'*(Vn+Vn1))./vecwise_2norm(Vmax'*Cn)*eps)
     
 
 for n=nList

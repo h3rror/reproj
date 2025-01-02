@@ -1,4 +1,5 @@
 function reproj(nList)
+close all
 
 if(nargin < 1)
     nList = 1:6;
@@ -40,7 +41,7 @@ for i=2:K
     Xtest(:, i) = makeTimeStepRK4(Xtest(:, i - 1));
 end
 
-% [E,~,~] = svd(Xtrain); % use POD basis
+[E,~,~] = svd(Xtrain); % use POD basis
 
 %% time step full model with stimulating force with forward Euler
 n_max = max(nList);
@@ -59,6 +60,8 @@ n_dt = numel(dts);
 reconstruction_errors = zeros(n_dt,1);
 
 tcA_r = Vmax'*tcA*Vmax
+
+dt_opt = zeros(n_dt,n_max);
 
 for j=1:n_dt
     dt = dts(j)
@@ -91,6 +94,16 @@ for j=1:n_dt
     Astim = (An'\Adot')'
 
     reconstruction_errors(j) = norm(Astim-tcA_r)
+
+    %% compute optimal dt
+    Vn = Xstim(:,1:end-1);
+    Vn1 = Xstim(:,2:end);
+
+    Cn = tcA*Vn;
+
+    dt_opt(j,:) = sqrt(vecwise_2norm(Vmax'*(Vn+Vn1))./vecwise_2norm(Vmax'*Cn)*eps)
+
+
 end
 
 figure
@@ -99,6 +112,8 @@ loglog(dts,reconstruction_errors,'x:')
 title("dependency of ROM operator error on dt (linear operator only)")
 ylabel("||A_{stim} - A_{intr}||_2")
 xlabel("\Delta t")
+
+
     
 
 for n=nList
