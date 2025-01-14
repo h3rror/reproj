@@ -16,7 +16,7 @@ F = rand(N,N_2); % problem: leads to unstable simulations
 F_s = rand(N,N,N);
 F_s2 = F_s - permute(F_s,[2 1 3]);
 F = reduced_convection_operator(F_s2(:,:));
-%%
+%% FOM snapshot generation for ROM basis construction
 A_s = rand(N,N);
 mus = (1:10)/10;
 % mus = 1;
@@ -53,10 +53,15 @@ ns = [2 4 6 8 10];
 nn = numel(ns);
 
 e_train = zeros(nn,1);
+h_e_train = zeros(nn,1);
 
-Mt = 3;
-U_train = 2*rand(1,nT,Mt);
-x_0train = rand(N,Mt);
+A_error = zeros(nn,1);
+F_error = zeros(nn,1);
+B_error = zeros(nn,1);
+
+Mt = 1;
+U_train = U_1;
+x_0train = x_0;
 
 for k = 1:nn
     n = ns(k);
@@ -69,6 +74,8 @@ for k = 1:nn
 
     tX_train = zeros(n,nT,Mt);
     X_train = zeros(N,nT,Mt);
+
+    hX_train = zeros(n,nT,Mt);
 
     %% intrusive ROM training error
     for i = 1:Mt
@@ -102,10 +109,66 @@ for k = 1:nn
         e_train(k) = e_train(k) + error;
     end
     %% operator inference
+    bX = V'*X_train(:,:);
+    bX0 = bX(:,1:end-1);
+    bX1 = bX(:,2:end);
+    bX0_2 = vectorwise_halfkron(bX0);
+    D = [bX0; bX0_2; U_train(:,:)];
+    bX_dot = (bX1-bX0)/dt;          % watch out: don't take time derivatives across trajectories!
     
+    O = (D'\bX_dot')';
+    hA = O(:,1:n);
+    n_2 = n*(n+1)/2;
+    hF = O(:,n+1:n+n_2);
+    hB = O(:,n+n_2+1:end);
+
+    A_error(k) = norm(tA-hA);
+    F_error(k) = norm(tF-hF);
+    B_error(k) = norm(tB-hB);
+
+    for i = 1:Mt
+        U = U_train(:,:,i);
+        x_0 = x_0train(:,i);
+        hx_0 = V'*x_0;
+
+        X_train(:,1,i) = x_0;
+        hX_train(:,1,i) = hx_0;
+
+        x = x_0;
+        hx = tx_0;
+        for j = 1:nT
+            % x_2 = vectorwise_halfkron(x);
+            % u = U(:,j);
+            % x = x + dt*(A*x + F*x_2 + B*u);
+            % X_train(:,j+1,i) = x;
+
+            hx_2 = vectorwise_halfkron(hx);
+            u = U(:,j);
+            %% naive ROM
+            % xr = V*tx;
+            % xr_2 = vectorwise_halfkron(xr);
+            % tx2 = V'*(xr + dt*(A*xr + F*xr_2 + B*u));
+            %%
+            hx = hx + dt*(hA*hx + hF*hx_2 + hB*u);
+            hX_train(:,j+1,i) = hx;
+        end
+
+        error = norm(V*hX_train(:,:,i) - X_train(:,:,i),"fro")/norm(X_train(:,:,i),"fro");
+        h_e_train(k) = h_e_train(k) + error;
+    end
 end
 
 figure
-semilogy(ns,e_train, "ks--")
-ylim([1e-5 10])
+semilogy(ns,e_train, "ks--","DisplayName","intrusive")
+hold on
+semilogy(ns,h_e_train, "ob","Displayname", "OpInf w/o reg")
+ylim([1e-5 1])
+
+figure
+semilogy(ns,A_error, "rs--","DisplayName","A")
+hold on
+semilogy(ns,F_error,"bx-","DisplayName","F")
+semilogy(ns,B_error,"g+:","DisplayName","B")
+ylabel("operator error")
+xlabel("ROM dimension")
 
