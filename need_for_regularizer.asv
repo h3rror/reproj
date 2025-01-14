@@ -78,8 +78,6 @@ for k = nn
             tX_train(:,j+1,i) = x;
         end
     end
-
-    
     %%
 end
 
