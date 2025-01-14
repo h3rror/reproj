@@ -55,31 +55,34 @@ for k = nn
     n = ns(k);
     V = U(:,1:n);
     tB = V'*B;
-    tF = V'*F*vectorwise_halfkron(V);
+    tF = V'*F*kron2power(N)*kron(V,V)*power2kron(n);
+    mu = .7;
+    A = - mu*(A_s+A_s'+ 2*N*eye(N));
+    tA = V'*A*V;
+
+    Mt = 3;
+    U_train = 2*rand(1,nT,Mt);
+    x_0train = rand(N,Mt);
 
     tX_train = zeros(n,nT,nmu);
 
     %% intrusive ROM training error
-    for i = nmu
-        mu = mus(i);
-        A = - mu*(A_s+A_s'+ 2*N*eye(N));
-        tA = V'*A*V;
-
-        U_1 = 2*rand(1,nT);
-        x_0 = rand(N,1);
+    for i = Mt
+        U = U_train(:,:,i);
+        x_0 = x_0train(:,i);
         tx_0 = V'*x_0;
-        tX_train(:,1,i) = x_0;
+        tX_train(:,1,i) = tx_0;
 
-        x = x_0;
+        tx = tx_0;
         for j = 1:nT
-            x_2 = vectorwise_halfkron(x);
-            u = U_1(:,j);
-            x = x + dt*(A*x + F*x_2 + B*u);
-            tX_train(:,j+1,i) = x;
+            tx_2 = vectorwise_halfkron(tx);
+            u = U(:,j);
+            tx = tx + dt*(tA*tx + tF*tx_2 + tB*u);
+            tX_train(:,j+1,i) = tx;
         end
     end
 
-    
+
     %%
 end
 

@@ -56,15 +56,17 @@ for k = nn
     V = U(:,1:n);
     tB = V'*B;
     tF = V'*F*vectorwise_halfkron(V);
+    mu = .7;
+    A = - mu*(A_s+A_s'+ 2*N*eye(N));
+    tA = V'*A*V;
+
+    Mt = 3;
+    U_train = rand(1,nT,Mt);
 
     tX_train = zeros(n,nT,nmu);
 
     %% intrusive ROM training error
-    for i = nmu
-        mu = mus(i);
-        A = - mu*(A_s+A_s'+ 2*N*eye(N));
-        tA = V'*A*V;
-
+    for i = Mt
         U_1 = 2*rand(1,nT);
         x_0 = rand(N,1);
         tx_0 = V'*x_0;
@@ -78,6 +80,8 @@ for k = nn
             tX_train(:,j+1,i) = x;
         end
     end
+
+
     %%
 end
 
