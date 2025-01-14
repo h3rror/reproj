@@ -6,8 +6,8 @@ rng(1); % for reproducibility
 % synthetic example (11) in
 % https://www.sciencedirect.com/science/article/pii/S0045782522007927?casa_token=AXNbPCfGtzoAAAAA:6IFh6fogD6SLiCtQxXdhGaCwHohuZCcKVcBsBB1h7Y55JjrUkMinEEL5mtDtx2jTEOaqj9IOoj8
 
-% N = 128;
-N = 10;
+N = 128;
+% N = 10;
 N_2 = N*(N+1)/2;
 
 B = rand(N,1);
@@ -48,8 +48,8 @@ end
 [Phi,S,~] = svd(X_b(:,:),'econ');
 % Phi = eye(10);
 
-ns = [2 4 6 8 10];
-% ns = 10;
+% ns = [2 4 6 8 10];
+ns = 10;
 nn = numel(ns);
 
 e_train = zeros(nn,1);
@@ -90,9 +90,9 @@ for k = 1:nn
             tx_2 = vectorwise_halfkron(tx);
             u = U(:,j);
             %% naive ROM
-            % xr = V*tx;
-            % xr_2 = vectorwise_halfkron(xr);
-            % tx2 = V'*(xr + dt*(A*xr + F*xr_2 + B*u));
+            xr = V*tx;
+            xr_2 = vectorwise_halfkron(xr);
+            tx2 = V'*(xr + dt*(A*xr + F*xr_2 + B*u));
             %%
             tx = tx + dt*(tA*tx + tF*tx_2 + tB*u);
             tX_train(:,j+1,i) = tx;
