@@ -2,7 +2,7 @@ function [s,b,u] = reduced_coordinates(N)
 
 A = reshape(1:N^2,N,N);
 
-B = min(A,A');
+B = max(A,A');
 
 b = B(:)';
 
