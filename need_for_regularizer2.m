@@ -18,21 +18,27 @@ F_s2 = F_s - permute(F_s,[2 1 3]);
 F = reduced_convection_operator(F_s2(:,:));
 %% FOM snapshot generation for ROM basis construction
 A_s = rand(N,N);
-mus = (1:10)/10;
+% mus = (1:10)/10;
 % mus = 1;
+% mus = .7;
+mus = [.7 .7];
 
 T = 1;
 dt = 1e-3;
 nT = T/dt;
 nmu = numel(mus);
 X_b = zeros(N,nT,nmu);
+X_0b = zeros(N,nmu);
+U_b = zeros(1,nT,nmu);
 
-for i = nmu
+for i = 1:nmu
     mu = mus(i);
     A = - mu*(A_s+A_s'+ 2*N*eye(N));
 
     U_1 = 2*rand(1,nT);
+    U_b(:,:,i) = U_1;
     x_0 = rand(N,1);
+    X_0b(:,i) = x_0;
     X_b(:,1,i) = x_0;
 
     x = x_0;
@@ -52,16 +58,22 @@ ns = [2 4 6 8 10];
 % ns = 10;
 nn = numel(ns);
 
-e_train = zeros(nn,1);
+t_e_train = zeros(nn,1);
 h_e_train = zeros(nn,1);
+
+t_e_test = zeros(nn,1);
+h_e_test = zeros(nn,1);
+
 
 A_error = zeros(nn,1);
 F_error = zeros(nn,1);
 B_error = zeros(nn,1);
 
 Mt = 1;
-U_train = U_1;
-x_0train = x_0;
+% U_train = U_1;
+U_train = U_b(:,:,1);
+% x_0train = x_0;
+x_0train = X_0b(:,1);
 
 for k = 1:nn
     n = ns(k);
@@ -106,7 +118,7 @@ for k = 1:nn
         end
 
         error = norm(V*tX_train(:,:,i) - X_train(:,:,i),"fro")/norm(X_train(:,:,i),"fro");
-        e_train(k) = e_train(k) + error;
+        t_e_train(k) = t_e_train(k) + error;
     end
     %% operator inference
     bX = V'*X_train(:,:);
@@ -135,7 +147,7 @@ for k = 1:nn
         hX_train(:,1,i) = hx_0;
 
         x = x_0;
-        hx = tx_0;
+        hx = hx_0;
         for j = 1:nT
             % x_2 = vectorwise_halfkron(x);
             % u = U(:,j);
@@ -156,19 +168,83 @@ for k = 1:nn
         error = norm(V*hX_train(:,:,i) - X_train(:,:,i),"fro")/norm(X_train(:,:,i),"fro");
         h_e_train(k) = h_e_train(k) + error;
     end
+
+
+    %% test error
+
+    tX_test = zeros(n,nT,Mt);
+    hX_test = zeros(n,nT,Mt);
+    X_test = zeros(N,nT,Mt);
+
+    for i = 1:Mt    
+        % U_test = 2*rand(1,nT);
+        % U_test = U_train;
+        U_test = U_b(:,:,2);
+        % U_test = 10*rand(1,nT);
+        % x_0test = rand(N,1);
+        % x_0test = x_0;
+        % x_0test = X_0b(:,1);
+        x_0test = X_0b(:,2);
+
+        tx_0 = V'*x_0test;
+
+        X_test(:,1,i) = x_0test;
+        tX_test(:,1,i) = tx_0;
+        hX_test(:,1,i) = tx_0;
+
+        x = x_0test;
+        tx = tx_0;
+        hx = tx_0;
+        for j = 1:nT
+            u = U_test(:,j);
+
+            x_2 = vectorwise_halfkron(x);
+
+            x = x + dt*(A*x + F*x_2 + B*u);
+            X_test(:,j+1,i) = x;
+
+            %% naive ROM
+            % xr = V*tx;
+            % xr_2 = vectorwise_halfkron(xr);
+            % tx2 = V'*(xr + dt*(A*xr + F*xr_2 + B*u));
+            %%
+            tx_2 = vectorwise_halfkron(tx);
+            hx_2 = vectorwise_halfkron(hx);
+
+            tx = tx + dt*(tA*tx + tF*tx_2 + tB*u);
+            tX_test(:,j+1,i) = tx;
+
+            hx = hx + dt*(hA*hx + hF*hx_2 + hB*u);
+            hX_test(:,j+1,i) = hx;
+        end
+        t_error = norm(V*tX_test(:,:,i) - X_test(:,:,i),"fro")/norm(X_test(:,:,i),"fro");
+        t_e_test(k) = t_e_test(k) + t_error;
+
+        h_error = norm(V*hX_test(:,:,i) - X_test(:,:,i),"fro")/norm(X_test(:,:,i),"fro");
+        h_e_test(k) = h_e_test(k) + h_error;
+    end
+    %%
 end
 
-figure
-semilogy(ns,e_train, "ks--","DisplayName","intrusive")
+figure(1)
+semilogy(ns,t_e_train, "ks--","DisplayName","intrusive")
 hold on
-semilogy(ns,h_e_train, "ob","Displayname", "OpInf w/o reg")
+semilogy(ns,h_e_train, "ob-","Displayname", "OpInf w/o reg")
 ylim([1e-5 1])
+title("training error (Fig 1a)")
 
-figure
+figure(2)
 semilogy(ns,A_error, "rs--","DisplayName","A")
 hold on
 semilogy(ns,F_error,"bx-","DisplayName","F")
 semilogy(ns,B_error,"g+:","DisplayName","B")
 ylabel("operator error")
 xlabel("ROM dimension")
+
+figure(3)  
+semilogy(ns,t_e_test, "ks--","DisplayName","intrusive")
+hold on
+semilogy(ns,h_e_test, "ob-","Displayname", "OpInf w/o reg")
+% ylim([1e-5 1])
+title("test error (Fig 1b)")
 
