@@ -240,6 +240,7 @@ semilogy(ns,F_error,"bx-","DisplayName","F")
 semilogy(ns,B_error,"g+:","DisplayName","B")
 ylabel("operator error")
 xlabel("ROM dimension")
+legend("show")
 
 figure(3)  
 semilogy(ns,t_e_test, "ks--","DisplayName","intrusive")
@@ -248,3 +249,5 @@ semilogy(ns,h_e_test, "ob-","Displayname", "OpInf w/o reg")
 % ylim([1e-5 1])
 title("test error (Fig 1b)")
 
+%% rank sufficient operator inference
+rank_suff_opinf;
