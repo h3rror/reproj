@@ -21,8 +21,8 @@ A = reshape(1:N^i,N*ones(1,i));
 
 P = perms(1:i);
 
-B = permute(A,P(1,:));
-for k = 2:size(P,2) % can be optimized by takes max on a binary tree
+B = A;
+for k = 2:size(P,2)
     B = max(B,permute(A,P(k,:)));
 end
 
@@ -31,6 +31,6 @@ b = B(:)';
 u = unique(b);
 
 
-M = repmat(u',1,N^i) == b;
+M = repmat(u',1,N^2) == b;
 
 s = (1:numel(u))*M;
