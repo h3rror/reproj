@@ -14,5 +14,6 @@ end
 
 
 % sparse
-N_2 = N*(N+1)/2;
-I = sparse(1:N_2,u,1);
+% N_2 = N*(N+1)/2;
+N_i = nchoosek(N+i-1,i); % see Peherstorfer's reproj article
+I = sparse(1:N_i,u,1);

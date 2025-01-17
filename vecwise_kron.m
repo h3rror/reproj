@@ -1,0 +1,18 @@
+function A_kron = vecwise_kron(A,i)
+
+if(nargin < 2)
+    i = 2;
+end
+
+[r,K] = size(A);
+
+A_kron = zeros(r^i,K);
+
+for j=1:K
+    a_j = A(:,j);
+    a_kron = a_j;
+    for l=1:i-1
+        a_kron = kron(a_kron,a_j);
+    end
+    A_kron(:,j) = a_kron;
+end
