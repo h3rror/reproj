@@ -15,4 +15,4 @@ s = reduced_coordinates(N,i);
 % test: kk = 3; kron2power(kk)*power2kron(kk)
 
 % sparse
-J = sparse(1:N^2,s,1);
+J = sparse(1:N^i,s,1);
