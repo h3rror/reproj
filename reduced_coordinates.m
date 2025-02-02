@@ -33,9 +33,9 @@ end
 
 b = B(:)';
 
-u = unique(b);
+[u,~,s] = unique(b);
 
 
-M = repmat(u',1,N^i) == b;
-
-s = (1:numel(u))*M;
+% M = repmat(u',1,N^i) == b;
+% 
+% s = (1:numel(u))*M;
