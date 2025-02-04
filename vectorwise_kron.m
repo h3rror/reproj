@@ -1,4 +1,4 @@
-unction A_kron = vectorwise_kron(A)
+function A_kron = vectorwise_kron(A)
 
 r = size(A,1);
 K = size(A,2);

@@ -59,6 +59,15 @@ Jn3 = power2kron(n,3);
 tA3 = Vn'*A3*IN3*kron(Vn,kron(Vn,Vn))*Jn3;
 tB = Vn'*B;
 
+%% generate rank-sufficient snapshot data
+
+X0_pure = rank_suff_basis(r,[1 3]);
+
+
+
+
+
+
 %% FOM solver running for one time step
 function x_1 = single_step(x_0,u_0)
     x_1 = x_0 + dt*f(x_0,u_0);

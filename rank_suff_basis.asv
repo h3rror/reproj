@@ -1,0 +1,26 @@
+function X = rank_suff_basis(n,is)
+
+% n: ROM dimension
+% is: arrey of polynomial degrees
+
+one_hot(i) = sparse(i,1,1,n,1);
+
+ni = numel(is);
+
+for k =1:ni
+    i = is(k);
+    
+end
+
+
+
+
+
+function Xi = rec_basis(Xim1,i,n)
+
+    if i = 1
+        Xi = eye(n);
+    else
+        for 
+    end
+end
