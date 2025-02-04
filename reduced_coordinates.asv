@@ -11,6 +11,12 @@ if(nargin < 2)
     i = 2;
 end
 
+if i == 1
+    s = 1:N;
+    b = s;
+    u = s;
+else
+
 %% only i=2
 % A = reshape(1:N^2,N,N);
 % 
@@ -21,16 +27,23 @@ A = reshape(1:N^i,N*ones(1,i));
 
 P = perms(1:i);
 
-B = A;
-for k = 2:size(P,2)
+%% initial approach
+% B = A;
+% for k = 1:size(P,1) % can be optimized by takes max on a binary tree
+%% little optimization
+B = permute(A,P(1,:));
+for k = 2:size(P,1) % can be optimized by takes max on a binary tree
+    %%
     B = max(B,permute(A,P(k,:)));
 end
 
 b = B(:)';
 
-u = unique(b);
+[u,~,s] = unique(b);
 
 
-M = repmat(u',1,N^2) == b;
+% M = repmat(u',1,N^i) == b;
+% 
+% s = (1:numel(u))*M;
 
-s = (1:numel(u))*M;
+end

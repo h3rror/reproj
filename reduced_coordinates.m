@@ -11,6 +11,12 @@ if(nargin < 2)
     i = 2;
 end
 
+if i == 1
+    s = 1:N;
+    b = s;
+    u = s;
+else
+
 %% only i=2
 % A = reshape(1:N^2,N,N);
 % 
@@ -39,3 +45,5 @@ b = B(:)';
 % M = repmat(u',1,N^i) == b;
 % 
 % s = (1:numel(u))*M;
+
+end
