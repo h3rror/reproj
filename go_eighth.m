@@ -5,8 +5,15 @@ rng(1); % for reproducibility
 
 % N = 128;
 N = 12;
+% N = 64;
 
-%% Allen-Cahn equation as in https://doi.org/10.1016/j.cma.2022.115836
+%% ice sheet model in https://icerm.brown.edu/video_archive/3942
+
+dt = 1e-5;
+% t_end = .1;
+% t_end = 1*dt;
+t_end = 20*dt;
+nt = t_end/dt;
 
 is = [1 3];
 A1 = diag(ones(N-1,1),-1) -eye(N);
@@ -15,8 +22,18 @@ JN3 = power2kron(N,3); % J_N^(3)
 A3 = vecwise_kron(eye(N),3)';
 A3 = A3*JN3;
 B = zeros(N,1);
-B(1) = 1;
+B(1) = 1/dt;
 p = 1;
+
+% boundary conditions
+% x(0,t) = u(t)
+A1(1,:) = 0;
+A1(1,1) = -1/dt;
+A3(1,:) = 0;
+
+% ddt x(1,t) = 0;
+A1(end,:) = 0;
+A3(end,:) = 0;
 
 IN3 = kron2power(N,3); % I_N^(3)
 f = @(x,u) A1*x + A3*IN3*vecwise_kron(x,3) + B*u;
@@ -24,11 +41,6 @@ f = @(x,u) A1*x + A3*IN3*vecwise_kron(x,3) + B*u;
 x0 = zeros(N,1);
 u_val = @(t) 10*(sin(pi*t)+1); % U_val
 
-dt = 1e-5;
-% t_end = .1;
-% t_end = 1*dt;
-t_end = 20*dt;
-nt = t_end/dt;
 
 %% generate ROM basis construction data
 X_b = zeros(N,nt);
@@ -63,20 +75,19 @@ tB = Vn'*B;
 
 %% generate rank-sufficient snapshot data
 
-X0_pure = rank_suff_basis(n,is);
+tX0_pure = rank_suff_basis(n,is);
 U0_pure = 1;
-XU = blkdiag(U0_pure,X0_pure);
-X0 = XU(p+1:end,:);
+XU = blkdiag(U0_pure,tX0_pure);
+tX0 = XU(p+1:end,:);
 U0 = XU(1:p,:);
 
 nf = size(XU,2);
-tX1 = zeros(n+p,nf);
+tX1 = zeros(n,nf);
 
 for i = 1:nf
-    tX1(i,:) = Vn'*single_step(X0(i,:),U0(i,:),dt,f);
+    tX1(:,i) = Vn'*single_step(Vn*tX0(:,i),U0(:,i),dt,f);
 end
 
-tX0 = Vn'*X0;
 dot_tX = (tX1-tX0)/dt;
 
 [O,A_inds,B_inds] = opinf(dot_tX,tX0,U0,is);
@@ -84,7 +95,9 @@ hA1 = O(:,A_inds(1,1):A_inds(1,2));
 hA3 = O(:,A_inds(2,1):A_inds(2,2));
 hB = O(:,B_inds);
 
-
+norm(tB - hB)
+norm(tA1 - hA1)
+norm(tA3 - hA3)
 
 %% FOM solver running for one time step
 function x_1 = single_step(x_0,u_0,dt,f)

@@ -5,8 +5,15 @@ rng(1); % for reproducibility
 
 % N = 128;
 N = 12;
+% N = 64;
 
 %% Allen-Cahn equation as in https://doi.org/10.1016/j.cma.2022.115836
+
+dt = 1e-5;
+% t_end = .1;
+% t_end = 1*dt;
+t_end = 20*dt;
+nt = t_end/dt;
 
 is = [1 3];
 A1 = diag(ones(N-1,1),-1) -eye(N);
@@ -15,8 +22,18 @@ JN3 = power2kron(N,3); % J_N^(3)
 A3 = vecwise_kron(eye(N),3)';
 A3 = A3*JN3;
 B = zeros(N,1);
-B(1) = 1;
+B(1) = 1/dt;
 p = 1;
+
+% boundary conditions
+% x(0,t) = u(t)
+A1(1,:) = 0;
+A1(1,1) = -1/dt;
+A3(1,:) = 0;
+
+% ddt x(1,t) = 0;
+A1(end,:) = 0;
+A3(end,:) = 0;
 
 IN3 = kron2power(N,3); % I_N^(3)
 f = @(x,u) A1*x + A3*IN3*vecwise_kron(x,3) + B*u;
@@ -24,11 +41,6 @@ f = @(x,u) A1*x + A3*IN3*vecwise_kron(x,3) + B*u;
 x0 = zeros(N,1);
 u_val = @(t) 10*(sin(pi*t)+1); % U_val
 
-dt = 1e-5;
-% t_end = .1;
-% t_end = 1*dt;
-t_end = 20*dt;
-nt = t_end/dt;
 
 %% generate ROM basis construction data
 X_b = zeros(N,nt);
@@ -83,7 +95,9 @@ hA1 = O(:,A_inds(1,1):A_inds(1,2));
 hA3 = O(:,A_inds(2,1):A_inds(2,2));
 hB = O(:,B_inds);
 
-
+norm(tB - hB)
+norm(tA1 - hA1)
+norm(tA3 - hA3)
 
 %% FOM solver running for one time step
 function x_1 = single_step(x_0,u_0,dt,f)
