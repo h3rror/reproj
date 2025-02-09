@@ -1,0 +1,12 @@
+%% check third-order term
+N = 3;
+% I = speye(N);
+I = eye(N);
+D = diag(ones(N-1,1),-1) - I; % not sparse!
+K = vecwise_kron(I); % not sparse!
+
+X3 = rank_suff_basis(N,3);
+
+A3 = D*K*kron(D*K*kron(I,I));
+
+f3 = @(x) 
