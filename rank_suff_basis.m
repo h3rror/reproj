@@ -16,7 +16,7 @@ for k =1:ni
     X = [X rec_basis(i,n)];
 end
 
-
+X = sparse(X);
 
     function Xi = rec_basis(i,n)
 
