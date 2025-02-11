@@ -1,8 +1,8 @@
-N = 3;
-% I = speye(N);
-I = eye(N);
+N = 8;
+I = speye(N);
 D = diag(ones(N-1,1),-1) - I; % not sparse!
-K = vecwise_kron(I)'; % not sparse!
+D = spars
+K = vecwise_kron(I)'; 
 
 %% check third-order term
 % X3 = rank_suff_basis(N,3);
@@ -26,4 +26,13 @@ X8 = rank_suff_basis(N,8);
 A8 = D*K*kron(D,K*kron(D,K*kron(D,K*kron(I,K*kron(I,K*kron(I,K*kron(I,I)))))));
 XA8 = A8*vecwise_kron(X8,8);
 
-f8 = @(x) D*(x.^5*(D*x).^3)
+f8 = @(x) D*(x.^5.*(D*x).^3);
+
+N_8 = size(X8,2);
+Xf8 = zeros(N,N_8);
+
+for i =1:N_8
+    Xf8(:,i) = f8(X8(:,i));
+end
+
+XA8 - Xf8
