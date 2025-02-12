@@ -6,11 +6,8 @@ end
 
 [r,K] = size(A);
 
-if false
-% if issparse(A)
-    % A_kron = sparse(r^i,K);
-    % A_kron = sparse([],[],[],r^i,K,i*K);
-    % A_kron = spalloc(r^i,K,i*K);
+if isa(A,"int32")
+    A_kron = zeros(r^i,K, "int32");
 else
     A_kron = zeros(r^i,K);
 end
