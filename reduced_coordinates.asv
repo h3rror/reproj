@@ -29,10 +29,10 @@ P = perms(1:i);
 
 %% initial approach
 % B = A;
-% for k = 1:size(P,1) % can be optimized by takes max on a binary tree
+% for k = 1:size(P,1) % can be optimized by taking max on a binary tree
 %% little optimization
 B = permute(A,P(1,:));
-for k = 2:size(P,1) % can be optimized by takes max on a binary tree
+for k = 2:size(P,1) % can be optimized by taking max on a binary tree
     %%
     B = max(B,permute(A,P(k,:)));
 end

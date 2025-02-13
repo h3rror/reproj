@@ -99,14 +99,18 @@ Jn3 = power2kron(n,3);
 % IN3 = kron2power(N,3);
 tA3 = Vn'*A3*kron(Vn,kron(Vn,Vn))*Jn3;
 
-tA3_2 = precompute_rom_operator(F3X,Vn,3)*Jn3;
+% tA3_2 = precompute_rom_operator(F3X,Vn,3)*Jn3;
+% 
+% norm(tA3_2 - tA3)
 
-norm(tA3_2 - tA3)
+Jn8 = power2kron(n,8);
+tA8 = precompute_rom_operator(F8X,Vn,8)*Jn8;
+
 
 %% generate rank-sufficient snapshot data
 
 tX0_pure = rank_suff_basis(n,is);
-U0_pure = 1;
+U0_pure = [];
 XU = blkdiag(U0_pure,tX0_pure);
 tX0 = XU(p+1:end,:);
 U0 = XU(1:p,:);
