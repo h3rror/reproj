@@ -16,34 +16,36 @@ if i == 1
     b = s;
     u = s;
 else
+    B = reshape(1:N^i,N*ones(1,i));
+    b = B(:)';
 
-%% only i=2
-% A = reshape(1:N^2,N,N);
-% 
-% B = max(A,A');
-%%
+    inds = [];
+    b = rec_for_loop(b,inds,1,i,N);
 
-A = reshape(1:N^i,N*ones(1,i));
 
-P = perms(1:i);
-
-%% initial approach
-% B = A;
-% for k = 1:size(P,1) % can be optimized by taking max on a binary tree
-%% little optimization
-B = permute(A,P(1,:));
-for k = 2:size(P,1) % can be optimized by taking max on a binary tree
-    %%
-    B = max(B,permute(A,P(k,:)));
 end
 
-b = B(:)';
+    function b = rec_for_loop(b,inds,j,i,N)
 
-[u,~,s] = unique(b);
+        if j==i+1
+            inds_sorted = sort(inds);
+            if inds_sorted == inds
+                inds
+                % B(inds) = counter;
+                % counter = counter + 1;
+            else
+                inds
+                b(subs2ind(N*ones(1,i),inds)) = b(subs2ind(N*ones(1,i),inds_sorted));
+            end
+        else
+            for m=N:-1:1
+                inds(j) = m;
+                b = rec_for_loop(b,inds,j+1,i,N);
+            end
+        end
+    end
 
+    [u,~,s] = unique(b);
 
-% M = repmat(u',1,N^i) == b;
-% 
-% s = (1:numel(u))*M;
 
 end
