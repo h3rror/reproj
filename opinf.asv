@@ -20,9 +20,7 @@ function [O,A_inds,B_inds] = opinf(dot_tX,tX,U,is)
     for k = 1:ni
         i = is(k);
         if isa(tX,"int32")
-            [~,rows] = find(kron2power(n,i));
-            tXi = vecwise_kron(tX,i);
-            D = [D; tXi(rows,:)]; 
+            
         else
             D = [D; kron2power(n,i)*vecwise_kron(tX,i)];
         end
@@ -30,7 +28,6 @@ function [O,A_inds,B_inds] = opinf(dot_tX,tX,U,is)
         A_inds(k,:) = [ind_old+1, ind];
         ind_old = ind;
     end
-    D = sparse(double(D));
 
-   O = (D'\dot_tX')';
+    O = (D'\dot_tX')';
 end

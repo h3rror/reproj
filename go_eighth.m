@@ -124,14 +124,17 @@ end
 
 dot_tX = (tX1-tX0)/dt;
 
+tX0 = int32(full(tX0));
+U0 = int32(full(U0));
+
 [O,A_inds,B_inds] = opinf(dot_tX,tX0,U0,is);
-hA1 = O(:,A_inds(1,1):A_inds(1,2));
-hA3 = O(:,A_inds(2,1):A_inds(2,2));
-hB = O(:,B_inds);
+hA3 = O(:,A_inds(1,1):A_inds(1,2));
+hA8 = O(:,A_inds(2,1):A_inds(2,2));
+% hB = O(:,B_inds);
 
 norm(tB - hB)
-norm(tA1 - hA1)
 norm(tA3 - hA3)
+norm(tA8 - hA8)
 
 %% FOM solver running for one time step
 function x_1 = single_step(x_0,u_0,dt,f)
