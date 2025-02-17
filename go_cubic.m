@@ -3,8 +3,8 @@ close all;
 
 rng(1); % for reproducibility
 
-% N = 128;
-N = 12;
+N = 128;
+% N = 12;
 % N = 64;
 
 %% Allen-Cahn equation as in https://doi.org/10.1016/j.cma.2022.115836
