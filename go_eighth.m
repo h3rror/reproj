@@ -89,7 +89,7 @@ for i=2:nt
 end
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b,'econ');
-V = eye(N); % botch!
+% V = eye(N); % botch!
 n = 6;
 Vn = V(:,1:n);
 
@@ -132,9 +132,9 @@ hA3 = O(:,A_inds(1,1):A_inds(1,2));
 hA8 = O(:,A_inds(2,1):A_inds(2,2));
 % hB = O(:,B_inds);
 
-norm(tB - hB)
-norm(tA3 - hA3)
-norm(tA8 - hA8)
+% norm(tB - hB)
+norm(a*tA3 - hA3)
+norm(a*tA8 - hA8)
 
 %% FOM solver running for one time step
 function x_1 = single_step(x_0,u_0,dt,f)
