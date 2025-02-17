@@ -97,14 +97,14 @@ Vn = V(:,1:n);
 A3 = D*K*kron(D,K*kron(I,I));
 Jn3 = power2kron(n,3);
 % IN3 = kron2power(N,3);
-tA3 = Vn'*A3*kron(Vn,kron(Vn,Vn))*Jn3;
+tA3 = a*Vn'*A3*kron(Vn,kron(Vn,Vn))*Jn3;
 
 % tA3_2 = precompute_rom_operator(F3X,Vn,3)*Jn3;
 % 
 % norm(tA3_2 - tA3)
 
 Jn8 = power2kron(n,8);
-tA8 = precompute_rom_operator(F8X,Vn,8)*Jn8;
+tA8 = a*precompute_rom_operator(F8X,Vn,8)*Jn8;
 
 
 %% generate rank-sufficient snapshot data
@@ -126,6 +126,49 @@ dot_tX = (tX1-tX0)/dt;
 
 tX0 = int32(full(tX0));
 U0 = int32(full(U0));
+
+%%
+ns = 1:6;
+nn = numel(ns);
+
+B_errors = zeros(nn,1);
+A3_errors = zeros(nn,1);
+A8_errors = zeros(nn,1);
+
+n_is__ = n_is(n,is);
+
+for j = 1:nn
+    n_ = ns(j);
+    n_is_ = n_is(n_,is);
+    nf_ = sum(n_is_)+p;
+
+    ks = [1:p+n_is_(1), p+n_is__(1)+1:p+n_is__(1)+n_is_(2)];
+
+    tX0_ = tX0(1:n_,ks);
+    dot_tX_ = dot_tX(1:n_,ks);
+    U0_ = U0(:,ks);
+
+    [O,A_inds,B_inds] = opinf(dot_tX_,tX0_,U0_,is);
+    hA3 = O(:,A_inds(1,1):A_inds(1,2));
+    hA8 = O(:,A_inds(2,1):A_inds(2,2));
+    % hB = O(:,B_inds);
+
+    % B_errors(j) = norm(tB(1:n_,:) - hB);
+    A3_errors(j) = norm(tA3(1:n_,1:n_is_(1)) - hA3);
+    A8_errors(j) = norm(tA8(1:n_,1:n_is_(2)) - hA8);
+end
+
+figure
+hold on
+% semilogy(ns,B_errors,'x-', 'LineWidth', 2,'DisplayName',"B")
+semilogy(ns,A3_errors,'x-', 'LineWidth', 2,'DisplayName',"A_1")
+semilogy(ns,A8_errors,'x-', 'LineWidth', 2,'DisplayName',"A_8")
+ylabel("operator error")
+xlabel("ROM dimension")
+set(gca, 'YScale', 'log')
+
+legend("show")
+%%
 
 [O,A_inds,B_inds] = opinf(dot_tX,tX0,U0,is);
 hA3 = O(:,A_inds(1,1):A_inds(1,2));

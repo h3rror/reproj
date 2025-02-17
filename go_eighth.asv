@@ -89,7 +89,7 @@ for i=2:nt
 end
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b,'econ');
-V = eye(N); % botch!
+% V = eye(N); % botch!
 n = 6;
 Vn = V(:,1:n);
 
@@ -97,14 +97,14 @@ Vn = V(:,1:n);
 A3 = D*K*kron(D,K*kron(I,I));
 Jn3 = power2kron(n,3);
 % IN3 = kron2power(N,3);
-tA3 = Vn'*A3*kron(Vn,kron(Vn,Vn))*Jn3;
+tA3 = a*Vn'*A3*kron(Vn,kron(Vn,Vn))*Jn3;
 
 % tA3_2 = precompute_rom_operator(F3X,Vn,3)*Jn3;
 % 
 % norm(tA3_2 - tA3)
 
 Jn8 = power2kron(n,8);
-tA8 = precompute_rom_operator(F8X,Vn,8)*Jn8;
+tA8 = a*precompute_rom_operator(F8X,Vn,8)*Jn8;
 
 
 %% generate rank-sufficient snapshot data
@@ -127,14 +127,57 @@ dot_tX = (tX1-tX0)/dt;
 tX0 = int32(full(tX0));
 U0 = int32(full(U0));
 
+%%
+ns = 1:10;
+nn = numel(ns);
+
+B_errors = zeros(nn,1);
+A1_errors = zeros(nn,1);
+A2_errors = zeros(nn,1);
+
+n_is__ = n_is(n,is);
+
+for j = 1:nn
+    n_ = ns(j);
+    n_is_ = n_is(n_,is);
+    nf_ = sum(n_is_)+p;
+
+    ks = [1:p+n_is_(1), p+n_is__(1)+1:p+n_is__(1)+n_is_(2)];
+
+    tX0_ = tX0(1:n_,ks);
+    dot_tX_ = dot_tX(1:n_,ks);
+    U0_ = U0(:,ks);
+
+    [O,A_inds,B_inds] = opinf(dot_tX_,tX0_,U0_,is);
+    hA1 = O(:,A_inds(1,1):A_inds(1,2));
+    hA3 = O(:,A_inds(2,1):A_inds(2,2));
+    % hB = O(:,B_inds);
+
+    % B_errors(j) = norm(tB(1:n_,:) - hB);
+    A1_errors(j) = norm(tA1(1:n_,1:n_is_(1)) - hA1);
+    A2_errors(j) = norm(tA3(1:n_,1:n_is_(2)) - hA3);
+end
+
+figure
+hold on
+% semilogy(ns,B_errors,'x-', 'LineWidth', 2,'DisplayName',"B")
+semilogy(ns,A1_errors,'x-', 'LineWidth', 2,'DisplayName',"A_1")
+semilogy(ns,A2_errors,'x-', 'LineWidth', 2,'DisplayName',"A_8")
+ylabel("operator error")
+xlabel("ROM dimension")
+set(gca, 'YScale', 'log')
+
+legend("show")
+%%
+
 [O,A_inds,B_inds] = opinf(dot_tX,tX0,U0,is);
 hA3 = O(:,A_inds(1,1):A_inds(1,2));
 hA8 = O(:,A_inds(2,1):A_inds(2,2));
 % hB = O(:,B_inds);
 
-norm(tB - hB)
-norm(tA3 - hA3)
-norm(tA8 - hA8)
+% norm(tB - hB)
+norm(a*tA3 - hA3)
+norm(a*tA8 - hA8)
 
 %% FOM solver running for one time step
 function x_1 = single_step(x_0,u_0,dt,f)
