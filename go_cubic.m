@@ -10,15 +10,15 @@ N = 128;
 %% Allen-Cahn equation as in https://doi.org/10.1016/j.cma.2022.115836
 
 dt = 1e-5;
-% t_end = .1;
+t_end = .1;
 % t_end = 1*dt;
-t_end = 20*dt;
+% t_end = 20*dt;
 nt = t_end/dt;
 
 is = [1 3];
 A1 = diag(ones(N-1,1),-1) -eye(N);
 A1 = (A1+A1')*N^2;
-JN3 = power2kron(N,3); % J_N^(3)
+% JN3 = power2kron(N,3); % J_N^(3)
 % A3 = vecwise_kron(eye(N),3)';
 % A3 = A3*JN3;
 B = zeros(N,1);
@@ -44,7 +44,7 @@ F3 = @(x1,x2,x3) -BC*(x1.*x2.*x3);
 F1X = @(X) F1(X(:,1));
 F3X = @(X) F3(X(:,1),X(:,2),X(:,3));
 
-IN3 = kron2power(N,3); % I_N^(3)
+% IN3 = kron2power(N,3); % I_N^(3)
 % f = @(x,u) A1*x + A3*IN3*vecwise_kron(x,3) + B*u; % slow!
 f = @(x,u) F1(x) + F3(x,x,x) + B*u;
 
