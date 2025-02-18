@@ -19,24 +19,34 @@ is = [1 3];
 A1 = diag(ones(N-1,1),-1) -eye(N);
 A1 = (A1+A1')*N^2;
 JN3 = power2kron(N,3); % J_N^(3)
-A3 = vecwise_kron(eye(N),3)';
-A3 = A3*JN3;
+% A3 = vecwise_kron(eye(N),3)';
+% A3 = A3*JN3;
 B = zeros(N,1);
 B(1) = 1/dt;
 p = 1;
 
 % boundary conditions
+BC = eye(N);
 % x(0,t) = u(t)
 A1(1,:) = 0;
 A1(1,1) = -1/dt;
-A3(1,:) = 0;
+% A3(1,:) = 0;
+BC(1,:) = 0;
 
 % ddt x(1,t) = 0;
 A1(end,:) = 0;
-A3(end,:) = 0;
+% A3(end,:) = 0;
+BC(end,:) = 0;
+
+F1 = @(x1) A1*x1;
+F3 = @(x1,x2,x3) -BC*(x1.*x2.*x3);
+
+F1X = @(X) F1(X(:,1));
+F3X = @(X) F3(X(:,1),X(:,2),X(:,3));
 
 IN3 = kron2power(N,3); % I_N^(3)
-f = @(x,u) A1*x + A3*IN3*vecwise_kron(x,3) + B*u;
+% f = @(x,u) A1*x + A3*IN3*vecwise_kron(x,3) + B*u; % slow!
+f = @(x,u) F1(x) + F3(x,x,x) + B*u;
 
 x0 = zeros(N,1);
 u_val = @(t) 10*(sin(pi*t)+1); % U_val
@@ -70,7 +80,8 @@ Vn = V(:,1:n);
 tA1 = Vn'*A1*Vn;
 Jn3 = power2kron(n,3);
 % In3 = kron2power(n,3);
-tA3 = Vn'*A3*IN3*kron(Vn,kron(Vn,Vn))*Jn3;
+% tA3 = Vn'*A3*IN3*kron(Vn,kron(Vn,Vn))*Jn3;
+tA3 = precompute_rom_operator(F3X,Vn,3)*Jn3;
 tB = Vn'*B;
 
 %% generate rank-sufficient snapshot data
@@ -113,7 +124,7 @@ for j = 1:nn
     [O,A_inds,B_inds] = opinf(dot_tX_,tX0_,U0_,is);
     hA1 = O(:,A_inds(1,1):A_inds(1,2));
     hA3 = O(:,A_inds(2,1):A_inds(2,2));
-    hB = O(:,B_inds);
+    hB = O(:,B_inds(1):B_inds(2));
 
     B_errors(j) = norm(tB(1:n_,:) - hB);
     A1_errors(j) = norm(tA1(1:n_,1:n_is_(1)) - hA1);

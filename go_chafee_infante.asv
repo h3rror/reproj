@@ -3,57 +3,52 @@ close all;
 
 rng(1); % for reproducibility
 
-N = 128;
-% N = 12;
+% N = 128;
+N = 12;
 % N = 64;
 
 %% Burgers' model in https://epubs.siam.org/doi/epdf/10.1137/19M1292448
 
-Omega = [-1 1];
+Omega = [0 1];
 xs = linspace(Omega(1),Omega(2),N);
 dx = (Omega(2)-Omega(1))/N;
 
-% dt = 1e-5;
-dt = 1e-4;
-% dt = .05;
-t_end = 1;
-% t_end = .1;
-% t_end = 1*dt;
-% t_end = 20*dt;
+dt = 1e-5;
+t_end = 4;
 nt = t_end/dt;
 
-is = [1 2];
+is = [1 2 3];
 I = speye(N);
-% D = -diag(ones(N-1,1),-1) + I; % not sparse!
-D = spdiags([-ones(N,1) ones(N,1)], [-1 1],N,N);
-% D(1,end) = -1; % periodic BC?
-D([1 N],:) = 0; % dx/dt = 0 BC / Dirichlet BC
-% D(1,end) = -1; D(end,1) = 1;
-
-% D = sparse(D);
-D = D/(2*dx);
 
 D2 = spdiags([ones(N,1) -2*ones(N,1) ones(N,1)], [-1 0 1],N,N);
 D2([1 N],:) = 0; % dx/dt = 0 BC / Dirichlet BC
 D2 = D2/dx^2;
-mu = .5;
-D2 = mu*D2;
-D2(1,1) = -1/dt; % dx/dt = 0 BC / Dirichlet BC
-D2(end,end) = -1/dt; % dx/dt = 0 BC / Dirichlet BC
+% mu = .5;
+% D2 = mu*D2;
+% D2(1,1) = -1/dt; % dx/dt = 0 BC / Dirichlet BC
+% D2(1,[1 2]) = [-1 1]; % dx/dxi(0,t) = 0 [ x(0)-x(-1) = 0 ]
+% D2(end,[end-1 end]) = [1 -1]; % dx/dxi(1,t) = 0 [ x(0)-x(-1) = 0 ]
+% D2(1,[1 2]) = [-2 2]; % dx/dxi(0,t) = 0 [ x(1)-x(-1) = 0 ]
+D2(end,[end-1 end]) = [2 -2]; % dx/dxi(1,t) = 0 [ x(1)-x(-1) = 0 ]
+D2(1,:) = 0; % dx.dt(0,t) = u
+% D2(end,end) = -1/dt; % dx/dt = 0 BC / Dirichlet BC
 
+A1 = D2 + I;
+A1(1,1) = -1/dt; % dx/dt = 0 BC / Dirichlet BC
 
-BC = eye(N);
-BC([1 N],:) = 0; % dx/dt = 0 BC / Dirichlet BC
+K = vecwise_kron(I)';
+
+A3 = - K*kron(I,K*kron(I,I));
 
 B = zeros(N,1);
 B(1) = 1;
-B(end) = -1;
+% B(end) = -1;
 B = B/dt;
 
-F1 = @(x1) D2*x1;
-F2 = @(x1,x2) -x1.*(D*x2);
+F1 = @(x1) A1*x1;
+F2 = @(x1,x2) 0*x1;
+F3 = @(x1,x2,x3) x1.*x2.*x3;
 
-K = vecwise_kron(I)';
 % A3 = D*K*kron(D,K*kron(I,I));
 % A8 = D*K*kron(D,K*kron(D,K*kron(D,K*kron(I,K*kron(I,K*kron(I,K*kron(I,I)))))));
 % F3 = @(x1,x2,x3) D*((D*x1).*x2.*x3);
@@ -62,7 +57,7 @@ K = vecwise_kron(I)';
 
 F1X = @(X) F1(X(:,1));
 F2X = @(X) F2(X(:,1),X(:,2));
-% F3X = @(X) F3(X(:,1),X(:,2),X(:,3));
+F3X = @(X) F3(X(:,1),X(:,2),X(:,3));
 % F8X = @(X) F8(X(:,1),X(:,2),X(:,3),X(:,4),X(:,5),X(:,6),X(:,7),X(:,8));
 
 % B = 0;
@@ -98,7 +93,7 @@ for i=2:nt
 end
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b,'econ');
-% V = eye(N); % botch!
+V = eye(N); % botch!
 n = 10;
 Vn = V(:,1:n);
 
@@ -145,8 +140,8 @@ tX0 = int32(full(tX0));
 U0 = int32(full(U0));
 
 %%
-ns = 1:10;
-% ns = 1:6;
+% ns = 1:10;
+ns = 1:6;
 nn = numel(ns);
 
 B_errors = zeros(nn,1);
@@ -184,13 +179,9 @@ semilogy(ns,A2_errors,'x-', 'LineWidth', 2,'DisplayName',"A_2")
 ylabel("operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
-grid on
 
 legend("show")
-%% visualize singular values
-figure; semilogy(diag(S),'o-')
-hold on
-
+%%
 
 
 %% FOM solver running for one time step
