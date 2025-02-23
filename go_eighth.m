@@ -24,7 +24,8 @@ I = speye(N);
 D = spdiags([-ones(N,1) ones(N,1)], [-1 1],N,N);
 % D(1,end) = -1; % periodic BC?
 % D([1 N],:) = 0; % dx/dt = 0 BC
-D(1,end) = -1; D(end,1) = 1;
+D(1,1) = -1; D(end,end) = 1; % somehow Neumann?
+% D(1,end) = -1; D(end,1) = 1; % periodic BC
 D = sparse(D);
 D = D/(2*1000/N);
 K = vecwise_kron(I)';
@@ -65,6 +66,9 @@ dx = 1000/N;
 x_max = max(abs(x0))
 dx_max = max(abs(D*x0))
 a = dx^2/dt/(x_max^2 + x_max^5*dx_max^2)
+% a = -a
+% a = 4*a
+a = round(a)
 f = @(x,u) a*(f3(x) + f8(x));
 
 

@@ -133,9 +133,9 @@ end
 
 figure
 hold on
-semilogy(ns,B_errors,'x-', 'LineWidth', 2,'DisplayName',"B")
 semilogy(ns,A1_errors,'x-', 'LineWidth', 2,'DisplayName',"A_1")
 semilogy(ns,A3_errors,'x-', 'LineWidth', 2,'DisplayName',"A_3")
+semilogy(ns,B_errors,'x-', 'LineWidth', 2,'DisplayName',"B")
 ylabel("operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
