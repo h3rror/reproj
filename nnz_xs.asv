@@ -1,0 +1,25 @@
+function xs = nnz_xs(nnz_,n,l)
+% compute all n-dimensional vectors with nnz nonzero entries
+% the nonzero entries are natural numbers and sum up to l
+
+x = [];
+xs = rec_nnz_xs(nnz_,n,l,x);
+
+    function xs = rec_nnz_xs(nnz_,n,l,x)
+% x is vector of variable length of already determined entries
+% 
+        if length
+        if nnz_ == nnz(x) || length(x)==n
+            xs = sparse(1:length(x),1,x,n,1);
+            % x = [x; zeros(n-length(x),1)];
+        else
+            xs = [];
+            for xi = 0:l-sum(x)
+                x_ = [x xi];
+                xs = [xs rec_nnz_xs(nnz_,n,l,x_)];
+            end
+        end
+
+    end
+
+end
