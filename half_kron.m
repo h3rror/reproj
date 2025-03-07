@@ -1,5 +1,5 @@
 function kron_h = half_kron(vector)
-% kronecker product of a vector with itslef without ambiguous entries:
+% kronecker product of a vector with itself without ambiguous entries:
 % a_i a_j = a_j a_i
 %
 % in incremental order: high index entries appear as late as possible

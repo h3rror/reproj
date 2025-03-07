@@ -128,7 +128,7 @@ for j = 1:nn
 
     B_errors(j) = norm(tB(1:n_,:) - hB);
     A1_errors(j) = norm(tA1(1:n_,1:n_is_(1)) - hA1);
-    A3_errors(j) = norm(tA3(1:n_,1:n_is_(2)) - hA3);
+    A3_errors(j) = norm(tA3(1:n_,1:n_is_(2)) - hA3);   
 end
 
 figure

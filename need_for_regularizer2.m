@@ -232,6 +232,7 @@ hold on
 semilogy(ns,h_e_train, "ob-","Displayname", "OpInf w/o reg")
 ylim([1e-5 1])
 title("training error (Fig 1a)")
+legend('show')
 
 figure(2)
 semilogy(ns,A_error, "rs--","DisplayName","A")

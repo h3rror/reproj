@@ -165,7 +165,7 @@ end
 figure
 hold on
 % semilogy(ns,B_errors,'x-', 'LineWidth', 2,'DisplayName',"B")
-semilogy(ns,A3_errors,'x-', 'LineWidth', 2,'DisplayName',"A_1")
+semilogy(ns,A3_errors,'x-', 'LineWidth', 2,'DisplayName',"A_3")
 semilogy(ns,A8_errors,'x-', 'LineWidth', 2,'DisplayName',"A_8")
 ylabel("operator error")
 xlabel("ROM dimension")
