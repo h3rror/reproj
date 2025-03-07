@@ -60,14 +60,20 @@ nn = numel(ns);
 
 t_e_train = zeros(nn,1);
 h_e_train = zeros(nn,1);
+r_e_train = zeros(nn,1);
 
 t_e_test = zeros(nn,1);
 h_e_test = zeros(nn,1);
+r_e_test = zeros(nn,1);
 
 
 A_error = zeros(nn,1);
 F_error = zeros(nn,1);
 B_error = zeros(nn,1);
+
+rA_error = zeros(nn,1);
+rF_error = zeros(nn,1);
+rB_error = zeros(nn,1);
 
 Mt = 1;
 % U_train = U_1;
@@ -88,6 +94,7 @@ for k = 1:nn
     X_train = zeros(N,nT,Mt);
 
     hX_train = zeros(n,nT,Mt);
+    rX_train = zeros(n,nT,Mt);
 
     %% intrusive ROM training error
     for i = 1:Mt
@@ -138,16 +145,31 @@ for k = 1:nn
     F_error(k) = norm(tF-hF);
     B_error(k) = norm(tB-hB);
 
+    [~,~,~,O_r] = OpInf_SVD(D,bX_dot);
+
+    rA = O_r(:,1:n);
+    rF = O_r(:,n+1:n+n_2);
+    rB = O_r(:,n+n_2+1:end);
+
+    rA_error(k) = norm(tA-rA);
+    rF_error(k) = norm(tF-rF);
+    rB_error(k) = norm(tB-rB);
+
+    In_2 = kron2power(n,2);
+
     for i = 1:Mt
         U = U_train(:,:,i);
         x_0 = x_0train(:,i);
         hx_0 = V'*x_0;
+        rx_0 = V'*x_0;
 
         X_train(:,1,i) = x_0;
         hX_train(:,1,i) = hx_0;
+        rX_train(:,1,i) = rx_0;
 
         x = x_0;
         hx = hx_0;
+        rx = hx_0;
         for j = 1:nT
             % x_2 = vectorwise_halfkron(x);
             % u = U(:,j);
@@ -162,11 +184,17 @@ for k = 1:nn
             % tx2 = V'*(xr + dt*(A*xr + F*xr_2 + B*u));
             %%
             hx = hx + dt*(hA*hx + hF*hx_2 + hB*u);
+            rx = rx + dt*(hA*rx + hF*In_2*kron(rx,rx) + hB*u);
+
             hX_train(:,j+1,i) = hx;
+            rX_train(:,j+1,i) = rx;
         end
 
         error = norm(V*hX_train(:,:,i) - X_train(:,:,i),"fro")/norm(X_train(:,:,i),"fro");
         h_e_train(k) = h_e_train(k) + error;
+
+        r_error = norm(V*rX_train(:,:,i) - X_train(:,:,i),"fro")/norm(X_train(:,:,i),"fro");
+        r_e_train(k) = r_e_train(k) + r_error;
     end
 
 
@@ -174,6 +202,7 @@ for k = 1:nn
 
     tX_test = zeros(n,nT,Mt);
     hX_test = zeros(n,nT,Mt);
+    rX_test = zeros(n,nT,Mt);
     X_test = zeros(N,nT,Mt);
 
     for i = 1:Mt    
@@ -191,10 +220,12 @@ for k = 1:nn
         X_test(:,1,i) = x_0test;
         tX_test(:,1,i) = tx_0;
         hX_test(:,1,i) = tx_0;
+        rX_test(:,1,i) = tx_0;
 
         x = x_0test;
         tx = tx_0;
         hx = tx_0;
+        rx = tx_0;
         for j = 1:nT
             u = U_test(:,j);
 
@@ -216,12 +247,18 @@ for k = 1:nn
 
             hx = hx + dt*(hA*hx + hF*hx_2 + hB*u);
             hX_test(:,j+1,i) = hx;
+
+            rx = rx + dt*(hA*rx + hF*In_2*kron(rx,rx) + hB*u);
+            rX_test(:,j+1,i) = rx;
         end
         t_error = norm(V*tX_test(:,:,i) - X_test(:,:,i),"fro")/norm(X_test(:,:,i),"fro");
         t_e_test(k) = t_e_test(k) + t_error;
 
         h_error = norm(V*hX_test(:,:,i) - X_test(:,:,i),"fro")/norm(X_test(:,:,i),"fro");
         h_e_test(k) = h_e_test(k) + h_error;
+
+        r_error = norm(V*rX_test(:,:,i) - X_test(:,:,i),"fro")/norm(X_test(:,:,i),"fro");
+        r_e_test(k) = r_e_test(k) + h_error;
     end
     %%
 end
@@ -230,6 +267,7 @@ figure(1)
 semilogy(ns,t_e_train, "ks--","DisplayName","intrusive")
 hold on
 semilogy(ns,h_e_train, "ob-","Displayname", "OpInf w/o reg")
+semilogy(ns,r_e_train, "sg-","Displayname", "OpInf SVD-reg")
 ylim([1e-5 1])
 title("training error (Fig 1a)")
 legend('show')
@@ -247,8 +285,10 @@ figure(3)
 semilogy(ns,t_e_test, "ks--","DisplayName","intrusive")
 hold on
 semilogy(ns,h_e_test, "ob-","Displayname", "OpInf w/o reg")
+semilogy(ns,r_e_test, "sg-","Displayname", "OpInf SVD-reg")
 % ylim([1e-5 1])
 title("test error (Fig 1b)")
+legend('show"')
 
 %% rank sufficient operator inference
 rank_suff_opinf;
