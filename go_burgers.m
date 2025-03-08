@@ -6,6 +6,7 @@ rng(1); % for reproducibility
 N = 128;
 % N = 12;
 % N = 64;
+% N = 6;
 
 %% Burgers' model in https://epubs.siam.org/doi/epdf/10.1137/19M1292448
 

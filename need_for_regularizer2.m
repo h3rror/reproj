@@ -280,6 +280,7 @@ semilogy(ns,B_error,"g+:","DisplayName","B")
 ylabel("operator error")
 xlabel("ROM dimension")
 legend("show")
+title("OpInf w/o reg")
 
 figure(3)  
 semilogy(ns,t_e_test, "ks--","DisplayName","intrusive")
@@ -289,6 +290,26 @@ semilogy(ns,r_e_test, "sg-","Displayname", "OpInf SVD-reg")
 % ylim([1e-5 1])
 title("test error (Fig 1b)")
 legend('show"')
+
+figure(2)
+semilogy(ns,A_error, "rs--","DisplayName","A")
+hold on
+semilogy(ns,F_error,"bx-","DisplayName","F")
+semilogy(ns,B_error,"g+:","DisplayName","B")
+ylabel("operator error")
+xlabel("ROM dimension")
+legend("show")
+
+figure(4)
+semilogy(ns,rA_error, "rs--","DisplayName","A")
+hold on
+semilogy(ns,rF_error,"bx-","DisplayName","F")
+semilogy(ns,rB_error,"g+:","DisplayName","B")
+ylabel("operator error")
+xlabel("ROM dimension")
+legend("show")
+title("OpInf SVD-reg")
+
 
 %% rank sufficient operator inference
 rank_suff_opinf;
