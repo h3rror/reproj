@@ -3,10 +3,10 @@ close all;
 
 rng(1); % for reproducibility
 
-N = 128;
+% N = 128;
 % N = 12;
 % N = 64;
-% N = 6;
+N = 6;
 
 %% Burgers' model in https://epubs.siam.org/doi/epdf/10.1137/19M1292448
 
@@ -235,7 +235,8 @@ for j = 1:nn
     dot_tX_ = dot_tX(1:n_,ks);
     U0_ = U0(:,ks);
 
-    [O,A_inds,B_inds] = opinf(dot_tX_,tX0_,U0_,is);
+    % [O,A_inds,B_inds] = opinf(dot_tX_,tX0_,U0_,is);
+    [O,A_inds,B_inds] = opinf(dot_tX_,tX0_,U0_,is,true);
     hA1 = O(:,A_inds(1,1):A_inds(1,2));
     hA2 = O(:,A_inds(2,1):A_inds(2,2));
     hB = O(:,B_inds(1,1):B_inds(1,2));
