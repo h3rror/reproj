@@ -25,13 +25,16 @@ text(xtips1,ytips1,labels1,'VerticalAlignment','middle')
 % text(xtips1,ytips1,labels1,'VerticalAlignment','right')
 
 % xtips2 = b(2).YEndPoints + 0.3;
-% ytips2 = b(2).XEndPoints;
+xtips2 = 1.5*b(2).YEndPoints;
+ytips2 = b(2).XEndPoints;
 % labels2 = string(b(2).YData);
-% text(xtips2,ytips2,labels2,'VerticalAlignment','middle')
+labels2 = compose("%1.1e",b(2).YData);
+text(xtips2,ytips2,labels2,'VerticalAlignment','middle')
 
 set(gca, 'XScale', 'log')
-grid on
+% grid on
 xlabel("number of snapshots")
+xlim([1. 2e8])
 
 % legend({'trial and error', 'rank-ensuring'})
 legend({'rank-ensuring', 'trial and error'})
