@@ -8,12 +8,14 @@ hold on
 
 cases = ["heat", ...
     ... "Burgers'", ...
-  "Burgers'", "Chafee-Infante", "Diffusion-reaction", "FitzHugh-Nagumo", "Euler"];
+  "Burgers'", "Chafee-Infante", "Diffusion-reaction", "FitzHugh-Nagumo", "Euler", ...
+  "periodic Burgers'", "Kuramoto-Sivashinsky"];
 cases = cases(end:-1:1)
 
 n_snapshots = [10^3 8; ....
     ....10^5 120; 
-    5*10^4 136; 10^7 455; 5*10^3 286; 3600 135; 64*10^3 528];
+    5*10^4 136; 10^7 455; 5*10^3 286; 3600 135; 64*10^3 528; ...
+    7500 65; 2.7e4 324];
 n_snapshots = n_snapshots(end:-1:1,[2 1])
 b = barh(cases,n_snapshots);
 
