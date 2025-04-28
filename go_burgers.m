@@ -172,6 +172,8 @@ sB_errors = zeros(nn,1);
 sA1_errors = zeros(nn,1);
 sA2_errors = zeros(nn,1);
 
+condsD = zeros(nn,1);
+
 n_is__ = n_is(n,is);
 
 tX_train = zeros(nn,nt,nn);
@@ -202,7 +204,7 @@ for j = 1:nn
     dot_tX_ = dot_tX(1:n_,ks);
     U0_ = U0(:,ks);
 
-    [O,A_inds,B_inds] = opinf(dot_tX_,tX0_,U0_,is);
+    [O,A_inds,B_inds,condD] = opinf(dot_tX_,tX0_,U0_,is,true);
     hA1 = O(:,A_inds(1,1):A_inds(1,2));
     hA2 = O(:,A_inds(2,1):A_inds(2,2));
     hB = O(:,B_inds(1,1):B_inds(1,2));
@@ -214,6 +216,8 @@ for j = 1:nn
     B_errors(j) = norm(tB(1:n_,:) - hB);
     A1_errors(j) = norm(tA1(1:n_,1:n_is_(1)) - hA1);
     A2_errors(j) = norm(tA2(1:n_,1:n_is_(2)) - hA2);
+
+    condsD(j) = condD;
 
     %% compare test and training errors with standard opinf
 

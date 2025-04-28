@@ -152,7 +152,7 @@ for j = 1:nn
     dot_tX_ = dot_tX(1:n_,ks);
     U0_ = U0(:,ks);
 
-    [O,A_inds,B_inds] = opinf(dot_tX_,tX0_,U0_,is);
+    [O,A_inds,B_inds] = opinf(dot_tX_,tX0_,U0_,is,true);
     hA3 = O(:,A_inds(1,1):A_inds(1,2));
     hA8 = O(:,A_inds(2,1):A_inds(2,2));
     % hB = O(:,B_inds);

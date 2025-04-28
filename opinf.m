@@ -1,4 +1,4 @@
-function [O,A_inds,B_inds] = opinf(dot_tX,tX,U,is,verbose)
+function [O,A_inds,B_inds,condD] = opinf(dot_tX,tX,U,is,verbose)
     % dot_tX: ROM state time derivative snapshots
     % tX: ROM state snapshots
     % is: array of polynomial degrees
@@ -18,7 +18,9 @@ end
     [D,A_inds,B_inds] = getOpInfMatrix(tX,U,is);
 
     if verbose==true
-        cond(D)
+        condD = cond(D)
+    else
+        condD = false;
     end
 
    O = (D'\dot_tX')';
