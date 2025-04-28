@@ -152,8 +152,8 @@ tA8 = c2*precompute_rom_operator(F8X,Vn,8)*Jn8;
 
 %% generate rank-sufficient snapshot data
 
-% tX0_pure = rank_suff_basis(n,is);
-tX0_pure = rank_suff_basis(n,is)/8;
+tX0_pure = rank_suff_basis(n,is);
+% tX0_pure = rank_suff_basis(n,is)/8;
 U0_pure = [];
 XU = blkdiag(U0_pure,tX0_pure);
 tX0 = XU(p+1:end,:);
@@ -168,8 +168,8 @@ end
 
 dot_tX = (tX1-tX0)/dt;
 
-% tX0 = int32(full(tX0));
-% U0 = int32(full(U0));
+tX0 = int32(full(tX0));
+U0 = int32(full(U0));
 
 %%
 ns = 1:6;
@@ -200,8 +200,10 @@ for j = 1:nn
     % hB = O(:,B_inds);
 
     % B_errors(j) = norm(tB(1:n_,:) - hB);
-    A3_errors(j) = norm(tA3(1:n_,1:n_is_(1)) - hA3);
-    A8_errors(j) = norm(tA8(1:n_,1:n_is_(2)) - hA8);
+    tA3_ = tA3(1:n_,1:n_is_(1));
+    A3_errors(j) = norm(tA3_ - hA3)/norm(tA3_);
+    tA8_ = tA8(1:n_,1:n_is_(2));
+    A8_errors(j) = norm(tA8_ - hA8)/norm(tA8_);
 
     condsD(j) = condD;
 end
