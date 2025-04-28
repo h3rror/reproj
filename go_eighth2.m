@@ -142,7 +142,7 @@ Jn3 = power2kron(n,3);
 % tA3 = c1*Vn'*A3*kron(Vn,kron(Vn,Vn))*Jn3; 
 
 % tA3_2 = precompute_rom_operator(F3X,Vn,3)*Jn3;
-tA3 = precompute_rom_operator(F3X,Vn,3)*Jn3;
+tA3 = c1*precompute_rom_operator(F3X,Vn,3)*Jn3;
 % 
 % norm(tA3_2 - tA3)
 
@@ -179,6 +179,9 @@ B_errors = zeros(nn,1);
 A3_errors = zeros(nn,1);
 A8_errors = zeros(nn,1);
 
+O_errors = zeros(nn,1);
+
+
 condsD = zeros(nn,1);
 
 n_is__ = n_is(n,is);
@@ -202,8 +205,13 @@ for j = 1:nn
     % B_errors(j) = norm(tB(1:n_,:) - hB);
     tA3_ = tA3(1:n_,1:n_is_(1));
     A3_errors(j) = norm(tA3_ - hA3)/norm(tA3_);
+    % A3_errors(j) = norm(tA3_ - hA3);
     tA8_ = tA8(1:n_,1:n_is_(2));
     A8_errors(j) = norm(tA8_ - hA8)/norm(tA8_);
+    % A8_errors(j) = norm(tA8_ - hA8);
+
+    tO_ = [tA3_ tA8_];
+    O_errors(j) = norm(O-tO_,"fro")/norm(tO_,"fro");
 
     condsD(j) = condD;
 end
@@ -211,8 +219,10 @@ end
 figure
 hold on
 % semilogy(ns,B_errors,'x-', 'LineWidth', 2,'DisplayName',"B")
-semilogy(ns,A3_errors,'x-', 'LineWidth', 2,'DisplayName',"A_3")
-semilogy(ns,A8_errors,'x-', 'LineWidth', 2,'DisplayName',"A_8")
+% semilogy(ns,A3_errors,'x-', 'LineWidth', 2,'DisplayName',"A_3")
+% semilogy(ns,A8_errors,'x-', 'LineWidth', 2,'DisplayName',"A_8")
+semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"O icesheet")
+
 ylabel("operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
