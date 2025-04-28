@@ -95,11 +95,20 @@ U0 = XU(1:p,:);
 nf = size(XU,2);
 tX1 = zeros(n,nf);
 
+% dt1 = 1
+Vn1 = Vn(:,1);
+X1 = X_b(:,1:end-1);
+X2 = X_b(:,2:end);
+dot_X = (X2-X1)/dt;
+U_b1 = U_b(:,1:end-1);
+dt1 = 1/max(abs(sqrt(sum(Vn1'*dot_X.^2,1))./sqrt(sum(getOpInfMatrix(Vn1'*X1,U_b1,is).^2,1))))
+
+
 for i = 1:nf
-    tX1(:,i) = Vn'*single_step(Vn*tX0(:,i),U0(:,i),dt,f);
+    tX1(:,i) = Vn'*single_step(Vn*tX0(:,i),U0(:,i),dt1,f);
 end
 
-dot_tX = (tX1-tX0)/dt;
+dot_tX = (tX1-tX0)/dt1;
 
 ns = 1:10;
 nn = numel(ns);
@@ -107,6 +116,8 @@ nn = numel(ns);
 B_errors = zeros(nn,1);
 A1_errors = zeros(nn,1);
 A3_errors = zeros(nn,1);
+
+O_errors = zeros(nn,1);
 
 n_is__ = n_is(n,is);
 
@@ -128,7 +139,14 @@ for j = 1:nn
 
     B_errors(j) = norm(tB(1:n_,:) - hB);
     A1_errors(j) = norm(tA1(1:n_,1:n_is_(1)) - hA1);
-    A3_errors(j) = norm(tA3(1:n_,1:n_is_(2)) - hA3);   
+    A3_errors(j) = norm(tA3(1:n_,1:n_is_(2)) - hA3); 
+
+    tB_ = tB(1:n_,:);
+    tA1_ = tA1(1:n_,1:n_is_(1));
+    tA3_ = tA3(1:n_,1:n_is_(2));
+
+    tO_ = [tB_ tA1_ tA3_];
+    O_errors(j) = norm(O-tO_,"fro")/norm(tO_,"fro");
 end
 
 figure
@@ -137,6 +155,16 @@ semilogy(ns,A1_errors,'x-', 'LineWidth', 2,'DisplayName',"A_1")
 semilogy(ns,A3_errors,'x-', 'LineWidth', 2,'DisplayName',"A_3")
 semilogy(ns,B_errors,'x-', 'LineWidth', 2,'DisplayName',"B")
 ylabel("operator error")
+xlabel("ROM dimension")
+set(gca, 'YScale', 'log')
+
+legend("show")
+
+figure
+hold on
+semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"O allen-cahn")
+
+ylabel("relative operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 

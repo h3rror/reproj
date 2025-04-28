@@ -108,6 +108,7 @@ if generateFOMdata
 else
     %% or load FOM data
     load("icesheet_FOMdata","X_b")
+    U_b = zeros(1,nt);
 end
 
 %% visualize FOM data
@@ -162,11 +163,22 @@ U0 = XU(1:p,:);
 nf = size(XU,2);
 tX1 = zeros(n,nf);
 
+% dt1 = 1
+% dt1 = 1e14
+
+Vn1 = Vn(:,1);
+X1 = X_POD(:,1:end-1);
+X2 = X_POD(:,2:end);
+dot_X = (X2-X1)/dt;
+U_b1 = U_b(:,1:2000);
+dt1 = 1/max(abs(sqrt(sum(Vn1'*dot_X.^2,1))./sqrt(sum(getOpInfMatrix(Vn1'*X1,U_b1,is).^2,1))))
+
+
 for i = 1:nf
-    tX1(:,i) = Vn'*single_step(Vn*tX0(:,i),U0(:,i),dt,f);
+    tX1(:,i) = Vn'*single_step(Vn*tX0(:,i),U0(:,i),dt1,f);
 end
 
-dot_tX = (tX1-tX0)/dt;
+dot_tX = (tX1-tX0)/dt1;
 
 tX0 = int32(full(tX0));
 U0 = int32(full(U0));
@@ -223,7 +235,7 @@ hold on
 % semilogy(ns,A8_errors,'x-', 'LineWidth', 2,'DisplayName',"A_8")
 semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"O icesheet")
 
-ylabel("operator error")
+ylabel("relative operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 

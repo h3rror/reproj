@@ -150,11 +150,20 @@ U0 = XU(1:p,:);
 nf = size(XU,2);
 tX1 = zeros(n,nf);
 
+% dt1 = 1
+Vn1 = Vn(:,1);
+X1 = X_b(:,1:end-1);
+X2 = X_b(:,2:end);
+dot_X = (X2-X1)/dt;
+U_b1 = U_b(:,1:end-1);
+dt1 = 1/max(abs(sqrt(sum(Vn1'*dot_X.^2,1))./sqrt(sum(getOpInfMatrix(Vn1'*X1,U_b1,is).^2,1))))
+
+
 for i = 1:nf
-    tX1(:,i) = Vn'*single_step(Vn*tX0(:,i),U0(:,i),dt,f);
+    tX1(:,i) = Vn'*single_step(Vn*tX0(:,i),U0(:,i),dt1,f);
 end
 
-dot_tX = (tX1-tX0)/dt;
+dot_tX = (tX1-tX0)/dt1;
 
 tX0 = int32(full(tX0));
 U0 = int32(full(U0));
@@ -167,6 +176,8 @@ nn = numel(ns);
 B_errors = zeros(nn,1);
 A1_errors = zeros(nn,1);
 A2_errors = zeros(nn,1);
+
+O_errors = zeros(nn,1);
 
 sB_errors = zeros(nn,1);
 sA1_errors = zeros(nn,1);
@@ -214,8 +225,16 @@ for j = 1:nn
     tA2_ = tA2(1:n_,1:n_is_(2));
 
     B_errors(j) = norm(tB(1:n_,:) - hB);
-    A1_errors(j) = norm(tA1(1:n_,1:n_is_(1)) - hA1);
-    A2_errors(j) = norm(tA2(1:n_,1:n_is_(2)) - hA2);
+    % B_errors(j) = norm(tB(1:n_,:) - hB);
+    tA1_ = tA1(1:n_,1:n_is_(1));
+    % A1_errors(j) = norm(tA1_ - hA1)/norm(tA1_);
+    A1_errors(j) = norm(tA1_ - hA1);
+    tA2_ = tA2(1:n_,1:n_is_(2));
+    % A2_errors(j) = norm(tA2_ - hA2)/norm(tA2_);
+    A2_errors(j) = norm(tA2_ - hA2);
+
+    tO_ = [tB_ tA1_ tA2_];
+    O_errors(j) = norm(O-tO_,"fro")/norm(tO_,"fro");
 
     condsD(j) = condD;
 
@@ -349,6 +368,15 @@ title("test error")
 grid on
 legend("show")
 
+figure
+hold on
+semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"O burgers")
+
+ylabel("relative operator error")
+xlabel("ROM dimension")
+set(gca, 'YScale', 'log')
+
+legend("show")
 
 %% visualize singular values
 figure; semilogy(diag(S),'o-')
