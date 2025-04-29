@@ -224,6 +224,9 @@ test_error_s = zeros(nn,1);
 h_energy_error = zeros(nn,1);
 t_energy_error = zeros(nn,1);
 
+h_symmetry_error = zeros(nn,1);
+t_symmetry_error = zeros(nn,1);
+
 for j = 1:nn
     n_ = ns(j);
     n_is_ = n_is(n_,is);
@@ -235,7 +238,8 @@ for j = 1:nn
     dot_tX_ = dot_tX(1:n_,ks);
     U0_ = U0(:,ks);
 
-    [O,A_inds,B_inds] = opinf(dot_tX_,tX0_,U0_,is);
+    % [O,A_inds,B_inds] = opinf(dot_tX_,tX0_,U0_,is);
+    [O,A_inds,B_inds] = opinf(dot_tX_,tX0_,U0_,is,true);
     hA1 = O(:,A_inds(1,1):A_inds(1,2));
     hA2 = O(:,A_inds(2,1):A_inds(2,2));
     hB = O(:,B_inds(1,1):B_inds(1,2));
@@ -253,9 +257,23 @@ for j = 1:nn
     Jn_3 = power2kron(n_,3);
     In_2 = kron2power(n_,2);
     h_conv = hA2*In_2;
-    h_energy_error(j) = norm(Jn_3'*h_conv(:));
+    % h_energy_error(j) = norm(Jn_3'*h_conv(:));
+    h_energy_error(j) = norm(Jn_3'*h_conv(:))/norm(hA2); % relative
     t_conv = hA2*In_2;
-    t_energy_error(j) = norm(Jn_3'*t_conv(:));
+    % t_energy_error(j) = norm(Jn_3'*t_conv(:));
+    t_energy_error(j) = norm(Jn_3'*t_conv(:))/norm(tA2); % relative
+
+    %% compute symmetry violation
+    h_symmetry_error(j) = norm(hA1 - hA1')/norm(hA1);
+    t_symmetry_error(j) = norm(tA1 - tA1')/norm(tA1);
+
+    %% plot eigenvalues of diffusion matrix
+    figure(316311)
+    hold on
+    semilogy(j*ones(10,1),-eig(tA1),'o', "DisplayName","rank-suff")
+    semilogy(j*ones(10,1),-eig(hA1),'x',)
+    ylabel("- eigenvalues")
+    xlabel("ROM dimension")
 
     %% compare test and training errors with standard opinf
 
