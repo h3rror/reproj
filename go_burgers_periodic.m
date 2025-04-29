@@ -181,11 +181,19 @@ U0 = XU(1:p,:);
 nf = size(XU,2);
 tX1 = zeros(n,nf);
 
+% dt1 = 1
+Vn1 = Vn(:,1);
+X1 = X_b(:,1:end-1);
+X2 = X_b(:,2:end);
+dot_X = (X2-X1)/dt;
+U_b1 = U_b(:,1:end-1);
+dt1 = 1/max(abs(sqrt(sum(Vn1'*dot_X.^2,1))./sqrt(sum(getOpInfMatrix(Vn1'*X1,U_b1,is).^2,1))))
+
 for i = 1:nf
-    tX1(:,i) = Vn'*single_step(Vn*tX0(:,i),U0(:,i),dt,f);
+    tX1(:,i) = Vn'*single_step(Vn*tX0(:,i),U0(:,i),dt1,f);
 end
 
-dot_tX = (tX1-tX0)/dt;
+dot_tX = (tX1-tX0)/dt1;
 
 tX0 = int32(full(tX0));
 U0 = int32(full(U0));
@@ -430,7 +438,7 @@ figure
 hold on
 semilogy(ns,h_symmetry_error,'x-', 'LineWidth', 2,'DisplayName',"rank-suff")
 semilogy(ns,t_symmetry_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive")
-ylabel("energy-preserving constraint violation")
+ylabel("diffusion matrix symmetry violation")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
