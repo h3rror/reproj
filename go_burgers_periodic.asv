@@ -240,40 +240,42 @@ for j = 1:nn
 
     % [O,A_inds,B_inds] = opinf(dot_tX_,tX0_,U0_,is);
     [O,A_inds,B_inds] = opinf(dot_tX_,tX0_,U0_,is,true);
-    hA1 = O(:,A_inds(1,1):A_inds(1,2));
-    hA2 = O(:,A_inds(2,1):A_inds(2,2));
-    hB = O(:,B_inds(1,1):B_inds(1,2));
+    hA1_ = O(:,A_inds(1,1):A_inds(1,2));
+    hA2_ = O(:,A_inds(2,1):A_inds(2,2));
+    hB_ = O(:,B_inds(1,1):B_inds(1,2));
 
     tB_ = tB(1:n_,:);
     tA1_ = tA1(1:n_,1:n_is_(1));
     tA2_ = tA2(1:n_,1:n_is_(2));
 
-    B_errors(j) = norm(tB(1:n_,:) - hB);
-    A1_errors(j) = norm(tA1(1:n_,1:n_is_(1)) - hA1);
-    A2_errors(j) = norm(tA2(1:n_,1:n_is_(2)) - hA2);
+    B_errors(j) = norm(tB(1:n_,:) - hB_);
+    A1_errors(j) = norm(tA1(1:n_,1:n_is_(1)) - hA1_);
+    A2_errors(j) = norm(tA2(1:n_,1:n_is_(2)) - hA2_);
 
     %% compute energy-preserving constraint violation
     % eq. (19) in https://arc.aiaa.org/doi/epdf/10.2514/6.2024-1012
     Jn_3 = power2kron(n_,3);
     In_2 = kron2power(n_,2);
-    h_conv = hA2*In_2;
+    h_conv = hA2_*In_2;
     % h_energy_error(j) = norm(Jn_3'*h_conv(:));
-    h_energy_error(j) = norm(Jn_3'*h_conv(:))/norm(hA2); % relative
-    t_conv = hA2*In_2;
+    h_energy_error(j) = norm(Jn_3'*h_conv(:))/norm(hA2_); % relative
+    t_conv = tA2_*In_2;
     % t_energy_error(j) = norm(Jn_3'*t_conv(:));
-    t_energy_error(j) = norm(Jn_3'*t_conv(:))/norm(tA2); % relative
+    t_energy_error(j) = norm(Jn_3'*t_conv(:))/norm(tA2_); % relative
 
     %% compute symmetry violation
-    h_symmetry_error(j) = norm(hA1 - hA1')/norm(hA1);
+    h_symmetry_error(j) = norm(hA1_ - hA1_')/norm(hA1_);
     t_symmetry_error(j) = norm(tA1 - tA1')/norm(tA1);
 
     %% plot eigenvalues of diffusion matrix
     figure(316311)
     hold on
-    semilogy(j*ones(10,1),-eig(tA1),'o', "DisplayName","rank-suff")
-    semilogy(j*ones(10,1),-eig(hA1),'x',)
+    semilogy(n_*ones(n_,1),-eig(tA1_),'bo', "DisplayName","intrusive")
+    semilogy(n_*ones(n_,1),-eig(hA1_),'rx', "DisplayName","rank-suff")
     ylabel("- eigenvalues")
     xlabel("ROM dimension")
+    set(gca, 'YScale', 'log')
+
 
     %% compare test and training errors with standard opinf
 
@@ -314,7 +316,7 @@ for j = 1:nn
 
     for i=2:nt
         tx = single_step(tx,u,dt,@(x,u) tA1_*x + tA2_*In_2*kron(tx,tx) + tB_*u);
-        hx = single_step(hx,u,dt,@(x,u) hA1*x + hA2*In_2*kron(hx,hx) + hB*u);
+        hx = single_step(hx,u,dt,@(x,u) hA1_*x + hA2_*In_2*kron(hx,hx) + hB_*u);
         sx = single_step(sx,u,dt,@(x,u) sA1*x + sA2*In_2*kron(sx,sx) + sB*u);
         t = t + dt;
         u = U_train(:,i);
@@ -350,7 +352,7 @@ for j = 1:nn
 
     for i=2:nt
         tx = single_step(tx,u,dt,@(x,u) tA1_*x + tA2_*In_2*kron(tx,tx) + tB_*u);
-        hx = single_step(hx,u,dt,@(x,u) hA1*x + hA2*In_2*kron(hx,hx) + hB*u);
+        hx = single_step(hx,u,dt,@(x,u) hA1_*x + hA2_*In_2*kron(hx,hx) + hB_*u);
         sx = single_step(sx,u,dt,@(x,u) sA1*x + sA2*In_2*kron(sx,sx) + sB*u);
         t = t + dt;
         u = U_test(:,i);
@@ -409,6 +411,16 @@ figure
 hold on
 semilogy(ns,h_energy_error,'x-', 'LineWidth', 2,'DisplayName',"rank-suff")
 semilogy(ns,t_energy_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive")
+ylabel("energy-preserving constraint violation")
+xlabel("ROM dimension")
+set(gca, 'YScale', 'log')
+grid on
+legend("show")
+
+figure
+hold on
+semilogy(ns,h_symmetry_error,'x-', 'LineWidth', 2,'DisplayName',"rank-suff")
+semilogy(ns,t_symmetry_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive")
 ylabel("energy-preserving constraint violation")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')

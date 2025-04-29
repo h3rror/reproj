@@ -258,22 +258,33 @@ for j = 1:nn
     In_2 = kron2power(n_,2);
     h_conv = hA2_*In_2;
     % h_energy_error(j) = norm(Jn_3'*h_conv(:));
-    h_energy_error(j) = norm(Jn_3'*h_conv(:))/norm(hA2_); % relative
+    % h_energy_error(j) = norm(Jn_3'*h_conv(:))/norm(hA2_); % relative
+    h_energy_error(j) = max(Jn_3'*h_conv(:)); 
     t_conv = tA2_*In_2;
     % t_energy_error(j) = norm(Jn_3'*t_conv(:));
-    t_energy_error(j) = norm(Jn_3'*t_conv(:))/norm(tA2_); % relative
+    % t_energy_error(j) = norm(Jn_3'*t_conv(:))/norm(tA2_); % relative
+    t_energy_error(j) = max(Jn_3'*t_conv(:)); 
 
     %% compute symmetry violation
-    h_symmetry_error(j) = norm(hA1_ - hA1_')/norm(hA1_);
-    t_symmetry_error(j) = norm(tA1 - tA1')/norm(tA1);
+    % h_symmetry_error(j) = norm(hA1_ - hA1_')/norm(hA1_);
+    % t_symmetry_error(j) = norm(tA1 - tA1')/norm(tA1);
+
+    h_symmetry_error(j) = max(hA1_ - hA1_',[],"all");
+    t_symmetry_error(j) = max(tA1_ - tA1_',[],"all");
 
     %% plot eigenvalues of diffusion matrix
     figure(316311)
     hold on
-    semilogy(n_*ones(n_,1),-eig(tA1_),'o', "DisplayName","intrusive")
-    semilogy(n_*ones(n_,1),-eig(hA1_),'x', "DisplayName","rank-suff")
+    semilogy(n_*ones(n_,1),-eig(tA1_),'bo', "DisplayName","intrusive")
+    semilogy(n_*ones(n_,1),-eig(hA1_),'rx', "DisplayName","rank-suff")
     ylabel("- eigenvalues")
     xlabel("ROM dimension")
+    set(gca, 'YScale', 'log')
+    % legend("show")
+    ylim([4 2e4])
+    grid
+    legend("intrusive","rank-suff","Location","northwest")
+
 
     %% compare test and training errors with standard opinf
 
@@ -409,6 +420,16 @@ figure
 hold on
 semilogy(ns,h_energy_error,'x-', 'LineWidth', 2,'DisplayName',"rank-suff")
 semilogy(ns,t_energy_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive")
+ylabel("energy-preserving constraint violation")
+xlabel("ROM dimension")
+set(gca, 'YScale', 'log')
+grid on
+legend("show")
+
+figure
+hold on
+semilogy(ns,h_symmetry_error,'x-', 'LineWidth', 2,'DisplayName',"rank-suff")
+semilogy(ns,t_symmetry_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive")
 ylabel("energy-preserving constraint violation")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
