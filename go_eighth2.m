@@ -29,7 +29,7 @@ D(1,1) = -1; D(end,end) = 1; % somehow Neumann?
 % D(1,end) = -1; D(end,1) = 1; % periodic BC
 D = sparse(D);
 D = D/(2*1000/N);
-K = vecwise_kron(I)';
+% K = vecwise_kron(I)';
 % A3 = D*K*kron(D,K*kron(I,I));
 % A8 = D*K*kron(D,K*kron(D,K*kron(D,K*kron(I,K*kron(I,K*kron(I,K*kron(I,I)))))));
 F3 = @(x1,x2,x3) D*((D*x1).*x2.*x3);
@@ -133,11 +133,11 @@ X_POD = X_b(:,1:2001);
 
 [V,S,~] = svd(X_b,'econ');
 % V = eye(N); % botch!
-n = 6;
+n = 7;
 Vn = V(:,1:n);
 
 %% construct intrusive operators
-A3 = D*K*kron(D,K*kron(I,I));
+% A3 = D*K*kron(D,K*kron(I,I));
 Jn3 = power2kron(n,3);
 % IN3 = kron2power(N,3);
 % tA3 = c1*Vn'*A3*kron(Vn,kron(Vn,Vn))*Jn3; 
@@ -184,7 +184,8 @@ tX0 = int32(full(tX0));
 U0 = int32(full(U0));
 
 %%
-ns = 1:6;
+ns = 1:n;
+% ns = n;
 nn = numel(ns);
 
 B_errors = zeros(nn,1);
@@ -192,6 +193,7 @@ A3_errors = zeros(nn,1);
 A8_errors = zeros(nn,1);
 
 O_errors = zeros(nn,1);
+condsD = zeros(nn,1);
 
 
 condsD = zeros(nn,1);
@@ -241,6 +243,8 @@ set(gca, 'YScale', 'log')
 
 legend("show")
 %%
+
+save("data_icesheet","O_errors","condsD");
 
 
 %% FOM solver running for one time step

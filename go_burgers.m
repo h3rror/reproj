@@ -114,7 +114,7 @@ end
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b(:,:),'econ');
 % V = eye(N); % botch!
-n = 10;
+n = 15;
 Vn = V(:,1:n);
 
 %% construct intrusive operators
@@ -169,7 +169,7 @@ tX0 = int32(full(tX0));
 U0 = int32(full(U0));
 
 %%
-ns = 1:10;
+ns = 1:n;
 % ns = 1:6;
 nn = numel(ns);
 
@@ -382,6 +382,7 @@ legend("show")
 figure; semilogy(diag(S),'o-')
 hold on
 
+save("data_burgers","O_errors","condsD");
 
 
 %% FOM solver running for one time step

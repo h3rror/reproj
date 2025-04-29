@@ -118,6 +118,7 @@ A1_errors = zeros(nn,1);
 A3_errors = zeros(nn,1);
 
 O_errors = zeros(nn,1);
+condsD = zeros(nn,1);
 
 n_is__ = n_is(n,is);
 
@@ -132,7 +133,7 @@ for j = 1:nn
     dot_tX_ = dot_tX(1:n_,ks);
     U0_ = U0(:,ks);
 
-    [O,A_inds,B_inds] = opinf(dot_tX_,tX0_,U0_,is);
+    [O,A_inds,B_inds,condD] = opinf(dot_tX_,tX0_,U0_,is,true);
     hA1 = O(:,A_inds(1,1):A_inds(1,2));
     hA3 = O(:,A_inds(2,1):A_inds(2,2));
     hB = O(:,B_inds(1):B_inds(2));
@@ -147,6 +148,8 @@ for j = 1:nn
 
     tO_ = [tB_ tA1_ tA3_];
     O_errors(j) = norm(O-tO_,"fro")/norm(tO_,"fro");
+
+    condsD(j) = condD;
 end
 
 figure
@@ -169,6 +172,9 @@ xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 
 legend("show")
+
+save("data_allencahn","O_errors","condsD");
+
 
 %% FOM solver running for one time step
 function x_1 = single_step(x_0,u_0,dt,f)

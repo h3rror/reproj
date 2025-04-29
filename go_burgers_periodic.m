@@ -143,7 +143,7 @@ end
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b(:,:),'econ');
 % V = eye(N); % botch!
-n = 10;
+n = 15;
 Vn = V(:,1:n);
 
 %% construct intrusive operators
@@ -199,13 +199,16 @@ tX0 = int32(full(tX0));
 U0 = int32(full(U0));
 
 %%
-ns = 1:10;
+ns = 1:n;
 % ns = 1:6;
 nn = numel(ns);
 
 B_errors = zeros(nn,1);
 A1_errors = zeros(nn,1);
 A2_errors = zeros(nn,1);
+
+O_errors = zeros(nn,1);
+condsD = zeros(nn,1);
 
 sB_errors = zeros(nn,1);
 sA1_errors = zeros(nn,1);
@@ -247,7 +250,7 @@ for j = 1:nn
     U0_ = U0(:,ks);
 
     % [O,A_inds,B_inds] = opinf(dot_tX_,tX0_,U0_,is);
-    [O,A_inds,B_inds] = opinf(dot_tX_,tX0_,U0_,is,true);
+    [O,A_inds,B_inds,condD] = opinf(dot_tX_,tX0_,U0_,is,true);
     hA1_ = O(:,A_inds(1,1):A_inds(1,2));
     hA2_ = O(:,A_inds(2,1):A_inds(2,2));
     hB_ = O(:,B_inds(1,1):B_inds(1,2));
@@ -260,6 +263,12 @@ for j = 1:nn
     A1_errors(j) = norm(tA1(1:n_,1:n_is_(1)) - hA1_);
     A2_errors(j) = norm(tA2(1:n_,1:n_is_(2)) - hA2_);
 
+    tO_ = [tB_ tA1_ tA2_];
+    O_errors(j) = norm(O-tO_,"fro")/norm(tO_,"fro");
+
+    condsD(j) = condD;
+
+
     %% compute energy-preserving constraint violation
     % eq. (19) in https://arc.aiaa.org/doi/epdf/10.2514/6.2024-1012
     Jn_3 = power2kron(n_,3);
@@ -267,18 +276,18 @@ for j = 1:nn
     h_conv = hA2_*In_2;
     % h_energy_error(j) = norm(Jn_3'*h_conv(:));
     % h_energy_error(j) = norm(Jn_3'*h_conv(:))/norm(hA2_); % relative
-    h_energy_error(j) = max(Jn_3'*h_conv(:)); 
+    h_energy_error(j) = max(abs(Jn_3'*h_conv(:))); 
     t_conv = tA2_*In_2;
     % t_energy_error(j) = norm(Jn_3'*t_conv(:));
     % t_energy_error(j) = norm(Jn_3'*t_conv(:))/norm(tA2_); % relative
-    t_energy_error(j) = max(Jn_3'*t_conv(:)); 
+    t_energy_error(j) = max(abs(Jn_3'*t_conv(:))); 
 
     %% compute symmetry violation
     % h_symmetry_error(j) = norm(hA1_ - hA1_')/norm(hA1_);
     % t_symmetry_error(j) = norm(tA1 - tA1')/norm(tA1);
 
-    h_symmetry_error(j) = max(hA1_ - hA1_',[],"all");
-    t_symmetry_error(j) = max(tA1_ - tA1_',[],"all");
+    h_symmetry_error(j) = max(abs(hA1_ - hA1_'),[],"all");
+    t_symmetry_error(j) = max(abs(tA1_ - tA1_'),[],"all");
 
     %% plot eigenvalues of diffusion matrix
     figure(316311)
@@ -290,7 +299,7 @@ for j = 1:nn
     set(gca, 'YScale', 'log')
     % legend("show")
     ylim([4 2e4])
-    grid
+    grid on
     legend("intrusive","rank-suff","Location","northwest")
 
 
@@ -433,6 +442,8 @@ xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
 legend("show")
+legend("Location","northwest")
+
 
 figure
 hold on
@@ -443,12 +454,19 @@ xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
 legend("show")
+legend("Location","northwest")
+
+
+figure
+hold on
+semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"O burgers")
 
 
 %% visualize singular values
 figure; semilogy(diag(S),'o-')
 hold on
 
+save("data_burgers_periodic","O_errors","condsD");
 
 
 %% FOM solver running for one time step

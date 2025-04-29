@@ -22,7 +22,6 @@ else
     inds = [];
     b = rec_for_loop(b,inds,1,i,N);
 
-
 end
 
     function b = rec_for_loop(b,inds,j,i,N)
