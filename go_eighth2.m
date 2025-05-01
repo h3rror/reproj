@@ -136,21 +136,6 @@ X_POD = X_b(:,1:2001);
 n = 7;
 Vn = V(:,1:n);
 
-%% construct intrusive operators
-% A3 = D*K*kron(D,K*kron(I,I));
-Jn3 = power2kron(n,3);
-% IN3 = kron2power(N,3);
-% tA3 = c1*Vn'*A3*kron(Vn,kron(Vn,Vn))*Jn3; 
-
-% tA3_2 = precompute_rom_operator(F3X,Vn,3)*Jn3;
-tA3 = c1*precompute_rom_operator(F3X,Vn,3)*Jn3;
-% 
-% norm(tA3_2 - tA3)
-
-Jn8 = power2kron(n,8);
-tA8 = c2*precompute_rom_operator(F8X,Vn,8)*Jn8;
-
-
 %% generate rank-sufficient snapshot data
 
 tX0_pure = rank_suff_basis(n,is);
@@ -182,6 +167,20 @@ dot_tX = (tX1-tX0)/dt1;
 
 tX0 = int32(full(tX0));
 U0 = int32(full(U0));
+
+%% construct intrusive operators
+% A3 = D*K*kron(D,K*kron(I,I));
+Jn3 = power2kron(n,3);
+% IN3 = kron2power(N,3);
+% tA3 = c1*Vn'*A3*kron(Vn,kron(Vn,Vn))*Jn3; 
+
+% tA3_2 = precompute_rom_operator(F3X,Vn,3)*Jn3;
+tA3 = c1*precompute_rom_operator(F3X,Vn,3)*Jn3;
+% 
+% norm(tA3_2 - tA3)
+
+Jn8 = power2kron(n,8);
+tA8 = c2*precompute_rom_operator(F8X,Vn,8)*Jn8;
 
 %%
 ns = 1:n;

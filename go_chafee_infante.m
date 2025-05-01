@@ -7,17 +7,20 @@ N = 128;
 % N = 12;
 % N = 64;
 
-%% Allen-Cahn equation as in https://doi.org/10.1016/j.cma.2022.115836
+%% Chafee-Infante as in https://doi.org/10.1137/19M1292448 combined with 
+% setup of Allen-Cahn in https://doi.org/10.1016/j.cma.2022.115836
 
 dt = 1e-5;
-t_end = .1;
+% t_end = 4;
+t_end = 0.1;
 % t_end = 1*dt;
 % t_end = 20*dt;
-nt = t_end/dt;
+nt = round(t_end/dt);
 
-is = [1 3];
+is = [1 2 3];
 A1 = diag(ones(N-1,1),-1) -eye(N);
 A1 = (A1+A1')*N^2;
+A1 = A1 + eye(N); % additional linear term missing in Allen-Cahn description
 % JN3 = power2kron(N,3); % J_N^(3)
 % A3 = vecwise_kron(eye(N),3)';
 % A3 = A3*JN3;
@@ -50,6 +53,7 @@ f = @(x,u) F1(x) + F3(x,x,x) + B*u;
 
 x0 = zeros(N,1);
 u_val = @(t) 10*(sin(pi*t)+1); % U_val
+% u_val = @(t) 10*(cos(pi*t)+1); % U_val
 
 
 %% generate ROM basis construction data
@@ -72,8 +76,8 @@ for i=2:nt
     U_b(:,i) = u;
 end
 %% construct ROM basis via POD
-[V,~,~] = svd(X_b,'econ');
-n = 10;
+[V,S,~] = svd(X_b,'econ');
+n = 12;
 Vn = V(:,1:n);
 
 %% construct intrusive operators
@@ -110,7 +114,8 @@ end
 
 dot_tX = (tX1-tX0)/dt1;
 
-ns = 1:10;
+% ns = 1:10;
+ns = 1:n;
 nn = numel(ns);
 
 B_errors = zeros(nn,1);
@@ -127,20 +132,24 @@ for j = 1:nn
     n_is_ = n_is(n_,is);
     nf_ = sum(n_is_)+p;
 
-    ks = [1:p+n_is_(1), p+n_is__(1)+1:p+n_is__(1)+n_is_(2)];
+    % ks = [1:p+n_is_(1), p+n_is__(1)+1:p+n_is__(1)+n_is_(2)];
+    ks = 1:p;
+    for jj = 1:numel(is)
+        ks = [ks p+n_is__(jj)-1+(1:n_is_(jj))];
+    end
 
     tX0_ = tX0(1:n_,ks);
     dot_tX_ = dot_tX(1:n_,ks);
     U0_ = U0(:,ks);
 
     [O,A_inds,B_inds,condD] = opinf(dot_tX_,tX0_,U0_,is,true);
-    hA1 = O(:,A_inds(1,1):A_inds(1,2));
-    hA3 = O(:,A_inds(2,1):A_inds(2,2));
-    hB = O(:,B_inds(1):B_inds(2));
-
-    B_errors(j) = norm(tB(1:n_,:) - hB);
-    A1_errors(j) = norm(tA1(1:n_,1:n_is_(1)) - hA1);
-    A3_errors(j) = norm(tA3(1:n_,1:n_is_(2)) - hA3); 
+    % hA1 = O(:,A_inds(1,1):A_inds(1,2));
+    % hA3 = O(:,A_inds(2,1):A_inds(2,2));
+    % hB = O(:,B_inds(1):B_inds(2));
+    % 
+    % B_errors(j) = norm(tB(1:n_,:) - hB);
+    % A1_errors(j) = norm(tA1(1:n_,1:n_is_(1)) - hA1);
+    % A3_errors(j) = norm(tA3(1:n_,1:n_is_(2)) - hA3); 
 
     tB_ = tB(1:n_,:);
     tA1_ = tA1(1:n_,1:n_is_(1));
@@ -165,7 +174,7 @@ legend("show")
 
 figure
 hold on
-semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"O allen-cahn")
+semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"O chafee-infante")
 
 ylabel("relative operator error")
 xlabel("ROM dimension")
@@ -173,7 +182,7 @@ set(gca, 'YScale', 'log')
 
 legend("show")
 
-save("data_allencahn","O_errors","condsD");
+save("chafee-infante","O_errors","condsD");
 
 
 %% FOM solver running for one time step
