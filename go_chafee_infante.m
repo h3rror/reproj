@@ -83,6 +83,8 @@ Vn = V(:,1:n);
 %% construct intrusive operators
 tA1 = Vn'*A1*Vn;
 Jn3 = power2kron(n,3);
+n2 = n*(n+1)/2;
+tA2 = zeros(n,n2);
 % In3 = kron2power(n,3);
 % tA3 = Vn'*A3*IN3*kron(Vn,kron(Vn,Vn))*Jn3;
 tA3 = precompute_rom_operator(F3X,Vn,3)*Jn3;
@@ -153,9 +155,10 @@ for j = 1:nn
 
     tB_ = tB(1:n_,:);
     tA1_ = tA1(1:n_,1:n_is_(1));
-    tA3_ = tA3(1:n_,1:n_is_(2));
+    tA2_ = tA2(1:n_,1:n_is_(2));
+    tA3_ = tA3(1:n_,1:n_is_(3));
 
-    tO_ = [tB_ tA1_ tA3_];
+    tO_ = [tB_ tA1_ tA2_ tA3_];
     O_errors(j) = norm(O-tO_,"fro")/norm(tO_,"fro");
 
     condsD(j) = condD;
