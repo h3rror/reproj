@@ -77,7 +77,7 @@ for i=2:nt
 end
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b,'econ');
-n = 12;
+n = 14;
 Vn = V(:,1:n);
 
 %% construct intrusive operators
@@ -89,6 +89,9 @@ tA2 = zeros(n,n2);
 % tA3 = Vn'*A3*IN3*kron(Vn,kron(Vn,Vn))*Jn3;
 tA3 = precompute_rom_operator(F3X,Vn,3)*Jn3;
 tB = Vn'*B;
+
+tO = [tB tA1 tA2 tA3];
+
 
 %% generate rank-sufficient snapshot data
 
@@ -128,6 +131,7 @@ O_errors = zeros(nn,1);
 condsD = zeros(nn,1);
 
 n_is__ = n_is(n,is);
+offset = cumsum(n_is__);
 
 for j = 1:nn
     n_ = ns(j);
@@ -135,9 +139,9 @@ for j = 1:nn
     nf_ = sum(n_is_)+p;
 
     % ks = [1:p+n_is_(1), p+n_is__(1)+1:p+n_is__(1)+n_is_(2)];
-    ks = 1:p;
-    for jj = 1:numel(is)
-        ks = [ks p+n_is__(jj)-1+(1:n_is_(jj))];
+    ks = 1:p+n_is_(1);
+    for jj = 2:numel(is)
+        ks = [ks p+offset(jj-1)+(1:n_is_(jj))];
     end
 
     tX0_ = tX0(1:n_,ks);
@@ -153,12 +157,15 @@ for j = 1:nn
     % A1_errors(j) = norm(tA1(1:n_,1:n_is_(1)) - hA1);
     % A3_errors(j) = norm(tA3(1:n_,1:n_is_(2)) - hA3); 
 
-    tB_ = tB(1:n_,:);
-    tA1_ = tA1(1:n_,1:n_is_(1));
-    tA2_ = tA2(1:n_,1:n_is_(2));
-    tA3_ = tA3(1:n_,1:n_is_(3));
+    % tB_ = tB(1:n_,:);
+    % tA1_ = tA1(1:n_,1:n_is_(1));
+    % tA2_ = tA2(1:n_,1:n_is_(2));
+    % tA3_ = tA3(1:n_,1:n_is_(3));
+    % 
+    % tO_ = [tB_ tA1_ tA2_ tA3_];
 
-    tO_ = [tB_ tA1_ tA2_ tA3_];
+    tO_ = tO(1:n_,ks);
+
     O_errors(j) = norm(O-tO_,"fro")/norm(tO_,"fro");
 
     condsD(j) = condD;
