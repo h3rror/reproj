@@ -3,6 +3,9 @@ close all;
 
 rng(1); % for reproducibility
 
+warning("eliminate input signal u!")
+
+
 N = 128;
 % N = 12;
 % N = 64;
@@ -95,14 +98,16 @@ F2X = @(X) F2(X(:,1),X(:,2));
 % F8X = @(X) F8(X(:,1),X(:,2),X(:,3),X(:,4),X(:,5),X(:,6),X(:,7),X(:,8));
 
 % B = 0;
-p = 1;
+% p = 1;
+p = 0;
 
 %%
 % x0 = zeros(N,1);
 
 %%
 % a = 12.5; % choose such that CFL condition a <= dx^2/dt/u_max^5 is met!
-f = @(x,u) F1(x) + F2(x,x) + B*u;
+% f = @(x,u) F1(x) + F2(x,x) + B*u;
+f = @(x,u) F1(x) + F2(x,x);
 
 
 %% generate ROM basis construction data
@@ -143,7 +148,7 @@ end
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b(:,:),'econ');
 % V = eye(N); % botch!
-n = 15;
+n = 10;
 Vn = V(:,1:n);
 
 %% construct intrusive operators
@@ -173,7 +178,8 @@ tB = Vn'*B;
 %% generate rank-sufficient snapshot data
 
 tX0_pure = rank_suff_basis(n,is);
-U0_pure = [1];
+% U0_pure = [1];
+U0_pure = [];
 XU = blkdiag(U0_pure,tX0_pure);
 tX0 = XU(p+1:end,:);
 U0 = XU(1:p,:);
@@ -263,7 +269,8 @@ for j = 1:nn
     A1_errors(j) = norm(tA1(1:n_,1:n_is_(1)) - hA1_);
     A2_errors(j) = norm(tA2(1:n_,1:n_is_(2)) - hA2_);
 
-    tO_ = [tB_ tA1_ tA2_];
+    % tO_ = [tB_ tA1_ tA2_];
+    tO_ = [tA1_ tA2_];
     O_errors(j) = norm(O-tO_,"fro")/norm(tO_,"fro");
 
     condsD(j) = condD;
@@ -322,75 +329,75 @@ for j = 1:nn
     sA2_errors(j) = norm(tA2(1:n_,1:n_is_(2)) - sA2);
 
     %% training error
-    t = 0;
-
-    x0_train = X0s(:,1);
-    tx = Vn_'*x0_train;
-    hx = Vn_'*x0_train;
-    sx = Vn_'*x0_train;
-
-    U_train = U_b(:,:,1);
-    X_train = X_b(:,:,1);
-
-    u = U_train(:,1);
-
-    tX_train(1:n_,1,j) = tx;
-    hX_train(1:n_,1,j) = hx;
-    sX_train(1:n_,1,j) = sx;
-
+    % t = 0;
+    % 
+    % x0_train = X0s(:,1);
+    % tx = Vn_'*x0_train;
+    % hx = Vn_'*x0_train;
+    % sx = Vn_'*x0_train;
+    % 
+    % U_train = U_b(:,:,1);
+    % X_train = X_b(:,:,1);
+    % 
+    % u = U_train(:,1);
+    % 
+    % tX_train(1:n_,1,j) = tx;
+    % hX_train(1:n_,1,j) = hx;
+    % sX_train(1:n_,1,j) = sx;
+    % 
+    % % In_2 = kron2power(n_,2);
+    % 
+    % for i=2:nt
+    %     tx = single_step(tx,u,dt,@(x,u) tA1_*x + tA2_*In_2*kron(tx,tx) + tB_*u);
+    %     hx = single_step(hx,u,dt,@(x,u) hA1_*x + hA2_*In_2*kron(hx,hx) + hB_*u);
+    %     sx = single_step(sx,u,dt,@(x,u) sA1*x + sA2*In_2*kron(sx,sx) + sB*u);
+    %     t = t + dt;
+    %     u = U_train(:,i);
+    % 
+    %     tX_train(1:n_,i,j) = tx;
+    %     hX_train(1:n_,i,j) = hx;
+    %     sX_train(1:n_,i,j) = sx;
+    % end
+    % 
+    % train_error_t(j) = norm(Vn_*tX_train(1:n_,:,j) - X_train,"fro")/norm(X_b,"fro");
+    % train_error_h(j) = norm(Vn_*hX_train(1:n_,:,j) - X_train,"fro")/norm(X_b,"fro");
+    % train_error_s(j) = norm(Vn_*sX_train(1:n_,:,j) - X_train,"fro")/norm(X_b,"fro");
+    % 
+    % %% test error
+    % t = 0;
+    % 
+    % % x0_test = ones(N,1);
+    % x0_test = X0s(:,Mt);
+    % tx = Vn_'*x0_test;
+    % hx = Vn_'*x0_test;
+    % sx = Vn_'*x0_test;
+    % 
+    % U_test = U_b(:,:,Mt);
+    % u = U_test(:,1);
+    % 
+    % X_test = X_b(:,:,Mt);
+    % 
+    % tX_test(1:n_,1,j) = tx;
+    % hX_test(1:n_,1,j) = hx;
+    % sX_test(1:n_,1,j) = sx;
+    % 
     % In_2 = kron2power(n_,2);
-
-    for i=2:nt
-        tx = single_step(tx,u,dt,@(x,u) tA1_*x + tA2_*In_2*kron(tx,tx) + tB_*u);
-        hx = single_step(hx,u,dt,@(x,u) hA1_*x + hA2_*In_2*kron(hx,hx) + hB_*u);
-        sx = single_step(sx,u,dt,@(x,u) sA1*x + sA2*In_2*kron(sx,sx) + sB*u);
-        t = t + dt;
-        u = U_train(:,i);
-
-        tX_train(1:n_,i,j) = tx;
-        hX_train(1:n_,i,j) = hx;
-        sX_train(1:n_,i,j) = sx;
-    end
-
-    train_error_t(j) = norm(Vn_*tX_train(1:n_,:,j) - X_train,"fro")/norm(X_b,"fro");
-    train_error_h(j) = norm(Vn_*hX_train(1:n_,:,j) - X_train,"fro")/norm(X_b,"fro");
-    train_error_s(j) = norm(Vn_*sX_train(1:n_,:,j) - X_train,"fro")/norm(X_b,"fro");
-
-    %% test error
-    t = 0;
-
-    % x0_test = ones(N,1);
-    x0_test = X0s(:,Mt);
-    tx = Vn_'*x0_test;
-    hx = Vn_'*x0_test;
-    sx = Vn_'*x0_test;
-
-    U_test = U_b(:,:,Mt);
-    u = U_test(:,1);
-
-    X_test = X_b(:,:,Mt);
-
-    tX_test(1:n_,1,j) = tx;
-    hX_test(1:n_,1,j) = hx;
-    sX_test(1:n_,1,j) = sx;
-
-    In_2 = kron2power(n_,2);
-
-    for i=2:nt
-        tx = single_step(tx,u,dt,@(x,u) tA1_*x + tA2_*In_2*kron(tx,tx) + tB_*u);
-        hx = single_step(hx,u,dt,@(x,u) hA1_*x + hA2_*In_2*kron(hx,hx) + hB_*u);
-        sx = single_step(sx,u,dt,@(x,u) sA1*x + sA2*In_2*kron(sx,sx) + sB*u);
-        t = t + dt;
-        u = U_test(:,i);
-
-        tX_test(1:n_,i,j) = tx;
-        hX_test(1:n_,i,j) = hx;
-        sX_test(1:n_,i,j) = sx;
-    end
-
-    test_error_t(j) = norm(Vn_*tX_test(1:n_,:,j) - X_test,"fro")/norm(X_b,"fro");
-    test_error_h(j) = norm(Vn_*hX_test(1:n_,:,j) - X_test,"fro")/norm(X_b,"fro");
-    test_error_s(j) = norm(Vn_*sX_test(1:n_,:,j) - X_test,"fro")/norm(X_b,"fro");
+    % 
+    % for i=2:nt
+    %     tx = single_step(tx,u,dt,@(x,u) tA1_*x + tA2_*In_2*kron(tx,tx) + tB_*u);
+    %     hx = single_step(hx,u,dt,@(x,u) hA1_*x + hA2_*In_2*kron(hx,hx) + hB_*u);
+    %     sx = single_step(sx,u,dt,@(x,u) sA1*x + sA2*In_2*kron(sx,sx) + sB*u);
+    %     t = t + dt;
+    %     u = U_test(:,i);
+    % 
+    %     tX_test(1:n_,i,j) = tx;
+    %     hX_test(1:n_,i,j) = hx;
+    %     sX_test(1:n_,i,j) = sx;
+    % end
+    % 
+    % test_error_t(j) = norm(Vn_*tX_test(1:n_,:,j) - X_test,"fro")/norm(X_b,"fro");
+    % test_error_h(j) = norm(Vn_*hX_test(1:n_,:,j) - X_test,"fro")/norm(X_b,"fro");
+    % test_error_s(j) = norm(Vn_*sX_test(1:n_,:,j) - X_test,"fro")/norm(X_b,"fro");
 
 end
 

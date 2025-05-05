@@ -3,6 +3,8 @@ close all;
 
 rng(1); % for reproducibility
 
+warning("eliminate input signal u!")
+
 N = 512;
 % N = 12;
 % N = 64;
