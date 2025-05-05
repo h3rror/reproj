@@ -192,7 +192,7 @@ set(gca, 'YScale', 'log')
 
 legend("show")
 
-save("chafee-infante","O_errors","condsD");
+save("data_chafee-infante","O_errors","condsD");
 
 
 %% FOM solver running for one time step

@@ -3,8 +3,6 @@ close all;
 
 rng(1); % for reproducibility
 
-warning("eliminate input signal u!")
-
 
 N = 128;
 % N = 12;
@@ -281,22 +279,25 @@ for j = 1:nn
     Jn_3 = power2kron(n_,3);
     In_2 = kron2power(n_,2);
     h_conv = hA2_*In_2;
-    % h_energy_error(j) = norm(Jn_3'*h_conv(:));
+    h_energy_error(j) = norm(Jn_3'*h_conv(:));
     % h_energy_error(j) = norm(Jn_3'*h_conv(:))/norm(hA2_); % relative
-    h_energy_error(j) = max(abs(Jn_3'*h_conv(:))); 
+    % h_energy_error(j) = max(abs(Jn_3'*h_conv(:))); 
     t_conv = tA2_*In_2;
-    % t_energy_error(j) = norm(Jn_3'*t_conv(:));
+    t_energy_error(j) = norm(Jn_3'*t_conv(:));
     % t_energy_error(j) = norm(Jn_3'*t_conv(:))/norm(tA2_); % relative
-    t_energy_error(j) = max(abs(Jn_3'*t_conv(:))); 
+    % t_energy_error(j) = max(abs(Jn_3'*t_conv(:))); 
 
     %% compute symmetry violation
-    % h_symmetry_error(j) = norm(hA1_ - hA1_')/norm(hA1_);
-    % t_symmetry_error(j) = norm(tA1 - tA1')/norm(tA1);
+    % h_symmetry_error(j) = norm(hA1_ - hA1_');
+    % t_symmetry_error(j) = norm(tA1 - tA1');
 
-    h_symmetry_error(j) = max(abs(hA1_ - hA1_'),[],"all");
-    t_symmetry_error(j) = max(abs(tA1_ - tA1_'),[],"all");
+    h_symmetry_error(j) = norm(hA1_ - hA1_')/norm(hA1_);
+    t_symmetry_error(j) = norm(tA1 - tA1')/norm(tA1);
 
-    %% plot eigenvalues of diffusion matrix
+    % h_symmetry_error(j) = max(abs(hA1_ - hA1_'),[],"all");
+    % t_symmetry_error(j) = max(abs(tA1_ - tA1_'),[],"all");
+
+    % plot eigenvalues of diffusion matrix
     figure(316311)
     hold on
     semilogy(n_*ones(n_,1),-eig(tA1_),'bo', "DisplayName","intrusive")
