@@ -301,14 +301,14 @@ for j = 1:nn
     figure(316311)
     hold on
     semilogy(n_*ones(n_,1),-eig(tA1_),'bo', "DisplayName","intrusive")
-    semilogy(n_*ones(n_,1),-eig(hA1_),'rx', "DisplayName","rank-suff")
+    semilogy(n_*ones(n_,1),-eig(hA1_),'rx', "DisplayName","exactOpInf")
     ylabel("- eigenvalues")
     xlabel("ROM dimension")
     set(gca, 'YScale', 'log')
     % legend("show")
     ylim([4 2e4])
     grid on
-    legend("intrusive","rank-suff","Location","northwest")
+    legend("intrusive","exactOpInf","Location","northwest")
 
 
     %% compare test and training errors with standard opinf
@@ -443,7 +443,7 @@ legend("show")
 
 figure
 hold on
-semilogy(ns,h_energy_error,'x-', 'LineWidth', 2,'DisplayName',"rank-suff")
+semilogy(ns,h_energy_error,'x-', 'LineWidth', 2,'DisplayName',"exactOpInf")
 semilogy(ns,t_energy_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive")
 ylabel("energy-preserving constraint violation")
 xlabel("ROM dimension")
@@ -455,7 +455,7 @@ legend("Location","northwest")
 
 figure
 hold on
-semilogy(ns,h_symmetry_error,'x-', 'LineWidth', 2,'DisplayName',"rank-suff")
+semilogy(ns,h_symmetry_error,'x-', 'LineWidth', 2,'DisplayName',"exactOpInf")
 semilogy(ns,t_symmetry_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive")
 ylabel("diffusion matrix symmetry violation")
 xlabel("ROM dimension")
@@ -463,6 +463,7 @@ set(gca, 'YScale', 'log')
 grid on
 legend("show")
 legend("Location","northwest")
+ylim([5e-17 1e-15])
 
 
 figure
