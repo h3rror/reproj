@@ -28,12 +28,7 @@ end
 
         if j==i+1
             inds_sorted = sort(inds);
-            if inds_sorted == inds
-                % inds
-                % B(inds) = counter;
-                % counter = counter + 1;
-            else
-                % inds
+            if inds_sorted ~= inds
                 b(subs2ind(N*ones(1,i),inds)) = b(subs2ind(N*ones(1,i),inds_sorted));
             end
         else

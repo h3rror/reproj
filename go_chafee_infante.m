@@ -82,11 +82,11 @@ Vn = V(:,1:n);
 
 %% construct intrusive operators
 tA1 = Vn'*A1*Vn;
-Jn3 = power2kron(n,3);
+
 n2 = n*(n+1)/2;
 tA2 = zeros(n,n2);
-% In3 = kron2power(n,3);
-% tA3 = Vn'*A3*IN3*kron(Vn,kron(Vn,Vn))*Jn3;
+
+Jn3 = power2kron(n,3);
 tA3 = precompute_rom_operator(F3X,Vn,3)*Jn3;
 tB = Vn'*B;
 
@@ -94,7 +94,6 @@ tO = [tB tA1 tA2 tA3];
 
 
 %% generate rank-sufficient snapshot data
-
 tX0_pure = rank_suff_basis(n,is);
 U0_pure = 1;
 XU = blkdiag(U0_pure,tX0_pure);
@@ -104,7 +103,7 @@ U0 = XU(1:p,:);
 nf = size(XU,2);
 tX1 = zeros(n,nf);
 
-% dt1 = 1
+%% compute time step estimate (3.10)
 Vn1 = Vn(:,1);
 X1 = X_b(:,1:end-1);
 X2 = X_b(:,2:end);
@@ -119,7 +118,6 @@ end
 
 dot_tX = (tX1-tX0)/dt1;
 
-% ns = 1:10;
 ns = 1:n;
 nn = numel(ns);
 

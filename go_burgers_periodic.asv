@@ -89,6 +89,7 @@ for k=1:Mt
 end
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b(:,:),'econ');
+% V = eye(N); % botch!
 n = 10;
 Vn = V(:,1:n);
 
@@ -112,7 +113,13 @@ U0 = [];
 nf = size(tX0,2);
 tX1 = zeros(n,nf);
 
-dt1 = dt_estimate(X_b,U_b,Vn(:,1),dt)
+% dt1 = 1
+Vn1 = Vn(:,1);
+X1 = X_b(:,1:end-1);
+X2 = X_b(:,2:end);
+dot_X = (X2-X1)/dt;
+U_b1 = U_b(:,1:end-1);
+dt1 = 1/max(abs(sqrt(sum(Vn1'*dot_X.^2,1))./sqrt(sum(getOpInfMatrix(Vn1'*X1,U_b1,is).^2,1))))
 
 for i = 1:nf
     tX1(:,i) = Vn'*single_step(Vn*tX0(:,i),U0(:,i),dt1,f);
