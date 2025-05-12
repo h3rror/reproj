@@ -26,7 +26,7 @@ A1 = A1 + eye(N); % additional linear term missing in Allen-Cahn description
 % A3 = A3*JN3;
 B = zeros(N,1);
 B(1) = 1/dt;
-p = 1;
+Nu = 1;
 
 % boundary conditions
 BC = eye(N);
@@ -97,8 +97,8 @@ tO = [tB tA1 tA2 tA3];
 tX0_pure = rank_suff_basis(n,is);
 U0_pure = 1;
 XU = blkdiag(U0_pure,tX0_pure);
-tX0 = XU(p+1:end,:);
-U0 = XU(1:p,:);
+tX0 = XU(Nu+1:end,:);
+U0 = XU(1:Nu,:);
 
 nf = size(XU,2);
 tX1 = zeros(n,nf);
@@ -134,12 +134,12 @@ offset = cumsum(n_is__);
 for j = 1:nn
     n_ = ns(j);
     n_is_ = n_is(n_,is);
-    nf_ = sum(n_is_)+p;
+    nf_ = sum(n_is_)+Nu;
 
     % ks = [1:p+n_is_(1), p+n_is__(1)+1:p+n_is__(1)+n_is_(2)];
-    ks = 1:p+n_is_(1);
+    ks = 1:Nu+n_is_(1);
     for jj = 2:numel(is)
-        ks = [ks p+offset(jj-1)+(1:n_is_(jj))];
+        ks = [ks Nu+offset(jj-1)+(1:n_is_(jj))];
     end
 
     tX0_ = tX0(1:n_,ks);

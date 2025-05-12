@@ -35,8 +35,8 @@ end
 C = C/(3*dx);
 
 F2 = @(x1,x2) C*kron(x1,x2);
-%% negative semi-definite diffusion operator
 
+%% negative semi-definite diffusion operator
 D = -2*diag(ones(N,1)) + diag(ones(N-1,1),1) + diag(ones(N-1,1),-1);
 D(N,1) = 1;
 D(1,N) = 1;
@@ -44,52 +44,40 @@ D = D/dx^2;
 
 F1 = @(x) D*x;
 
+%%
 F1X = @(X) F1(X(:,1));
 F2X = @(X) F2(X(:,1),X(:,2));
 
-p = 0; % input signal dimension
+Nu = 0; % input signal dimension
 
 f = @(x,u) F1(x) + F2(x,x);
 
 
 %% generate ROM basis construction data
-% Mt = 2; % make test and training data differ
-Mt = 1; % make test and training data equal
+X_b = zeros(N,nt);
+U_b = zeros(Nu,nt); 
+% X0s = 10*[-sin(pi/2*xs)' sin(3*pi/2*xs)']; % -> make intial condition satisfy BC
+x0 = -sin(pi/2*xs)' ; % -> make intial condition satisfy BC
 
-X_b = zeros(N,nt,Mt);
-% U_b = zeros(1,nt);
-% U_b = 10*rand(1,nt,Mt);
-% U_test = 10*rand(1,nt);
-% X0s = [x0, rand(N,Mt-1)];
-% X0s = rand(N,Mt);
-% X0s = [zeros(N,1) sin(2*pi*xs)'];
+t = 0;
+x = x0;
+u = U_b(:,1);
 
-U_b = 10*ones(1,nt,Mt); 
-X0s = 10*[-sin(pi/2*xs)' sin(3*pi/2*xs)']; % -> make intial condition satisfy BC
+X_b(:,1) = x0;
+% U_b(:,1) = u;
 
-for k=1:Mt
-    x0 = X0s(:,k);
+for i=2:nt
+    x = x + dt*f(x,u);
+    t = t + dt;
+    u = U_b(:,i);
 
-    t = 0;
-    x = x0;
-    u = U_b(:,1,k);
-
-    X_b(:,1,k) = x0;
-    % U_b(:,1) = u;
-
-    for i=2:nt
-        x = x + dt*f(x,u);
-        t = t + dt;
-        u = U_b(:,i,k);
-
-        X_b(:,i,k) = x;
-        % U_b(:,i) = u;
-    end
-
+    X_b(:,i) = x;
+    % U_b(:,i) = u;
 end
+
 %% construct ROM basis via POD
-[V,S,~] = svd(X_b(:,:),'econ');
-n = 10;
+[V,S,~] = svd(X_b,'econ');
+n = 4;
 Vn = V(:,1:n);
 
 %% construct intrusive operators
@@ -102,17 +90,23 @@ tA2_2= Vn'*C*kron(Vn,Vn)*Jn2;
 norm(tA2-tA2_2)
 
 
-tB = Vn'*B;
+% tB = Vn'*B;
 
 
 %% generate rank-sufficient snapshot data
-tX0 = rank_suff_basis(n,is);
-U0 = [];
+tX0_pure = rank_suff_basis(n,is);
+U0_pure = [];
+XU = blkdiag(U0_pure,tX0_pure);
+tX0 = XU(Nu+1:end,:);
+U0 = XU(1:Nu,:);
+
+% tX0 = rank_suff_basis(n,is);
+% U0 = [];
 
 nf = size(tX0,2);
 tX1 = zeros(n,nf);
 
-dt1 = dt_estimate(X_b,U_b,Vn(:,1),dt)
+dt1 = dt_estimate(X_b,U_b,Vn(:,1),dt,is)
 
 for i = 1:nf
     tX1(:,i) = Vn'*single_step(Vn*tX0(:,i),U0(:,i),dt1,f);
@@ -145,9 +139,9 @@ t_symmetry_error = zeros(nn,1);
 for j = 1:nn
     n_ = ns(j);
     n_is_ = n_is(n_,is);
-    nf_ = sum(n_is_)+p;
+    nf_ = sum(n_is_)+Nu;
 
-    ks = [1:p+n_is_(1), p+n_is__(1)+1:p+n_is__(1)+n_is_(2)];
+    ks = [1:Nu+n_is_(1), Nu+n_is__(1)+1:Nu+n_is__(1)+n_is_(2)];
 
     tX0_ = tX0(1:n_,ks);
     dot_tX_ = dot_tX(1:n_,ks);
@@ -158,7 +152,7 @@ for j = 1:nn
     hA2_ = O(:,A_inds(2,1):A_inds(2,2));
     hB_ = O(:,B_inds(1,1):B_inds(1,2));
 
-    tB_ = tB(1:n_,:);
+    % tB_ = tB(1:n_,:);
     tA1_ = tA1(1:n_,1:n_is_(1));
     tA2_ = tA2(1:n_,1:n_is_(2));
 
@@ -173,9 +167,11 @@ for j = 1:nn
     Jn_3 = power2kron(n_,3);
     In_2 = kron2power(n_,2);
     h_conv = hA2_*In_2;
-    h_energy_error(j) = sum(abs(Jn_3'*h_conv(:)));
+    % h_energy_error(j) = sum(abs(Jn_3'*h_conv(:)));
+    h_energy_error(j) = norm((Jn_3'*h_conv(:)));
     t_conv = tA2_*In_2;
-    t_energy_error(j) = sum(abs(Jn_3'*t_conv(:)));
+    % t_energy_error(j) = sum(abs(Jn_3'*t_conv(:)));
+    t_energy_error(j) = norm((Jn_3'*t_conv(:)));
 
     %% compute symmetry violation
     h_symmetry_error(j) = norm(hA1_ - hA1_')/norm(hA1_);
@@ -198,42 +194,43 @@ end
 
 figure
 hold on
-semilogy(ns,A1_errors,'x-', 'LineWidth', 2,'DisplayName',"A_1 rank-suff")
-semilogy(ns,A2_errors,'x-', 'LineWidth', 2,'DisplayName',"A_2 rank-suff")
-semilogy(ns,B_errors,'x-', 'LineWidth', 2,'DisplayName',"B rank-suff")
-
-semilogy(ns,sA1_errors,'x-', 'LineWidth', 2,'DisplayName',"A_1 standard opinf")
-semilogy(ns,sA2_errors,'x-', 'LineWidth', 2,'DisplayName',"A_2 standard opinf")
-semilogy(ns,sB_errors,'x-', 'LineWidth', 2,'DisplayName',"B standard opinf")
+semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"exactOpInf")
+% semilogy(ns,A1_errors,'x-', 'LineWidth', 2,'DisplayName',"A_1 rank-suff")
+% semilogy(ns,A2_errors,'x-', 'LineWidth', 2,'DisplayName',"A_2 rank-suff")
+% semilogy(ns,B_errors,'x-', 'LineWidth', 2,'DisplayName',"B rank-suff")
+% 
+% semilogy(ns,sA1_errors,'x-', 'LineWidth', 2,'DisplayName',"A_1 standard opinf")
+% semilogy(ns,sA2_errors,'x-', 'LineWidth', 2,'DisplayName',"A_2 standard opinf")
+% semilogy(ns,sB_errors,'x-', 'LineWidth', 2,'DisplayName',"B standard opinf")
 ylabel("operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
 legend("show")
 
-figure
-hold on
-semilogy(ns,train_error_t,'x-', 'LineWidth', 2,'DisplayName',"intrusive")
-semilogy(ns,train_error_h,'o-', 'LineWidth', 2,'DisplayName',"rank-suff")
-semilogy(ns,train_error_s,'s-', 'LineWidth', 2,'DisplayName',"standard")
-ylabel("average relative state error")
-xlabel("ROM dimension")
-set(gca, 'YScale', 'log')
-title("training error")
-grid on
-legend("show")
-
-figure
-hold on
-semilogy(ns,test_error_t,'x-', 'LineWidth', 2,'DisplayName',"intrusive")
-semilogy(ns,test_error_h,'o-', 'LineWidth', 2,'DisplayName',"rank-suff")
-semilogy(ns,test_error_s,'s-', 'LineWidth', 2,'DisplayName',"standard")
-ylabel("average relative state error")
-xlabel("ROM dimension")
-set(gca, 'YScale', 'log')
-title("test error")
-grid on
-legend("show")
+% figure
+% hold on
+% semilogy(ns,train_error_t,'x-', 'LineWidth', 2,'DisplayName',"intrusive")
+% semilogy(ns,train_error_h,'o-', 'LineWidth', 2,'DisplayName',"rank-suff")
+% semilogy(ns,train_error_s,'s-', 'LineWidth', 2,'DisplayName',"standard")
+% ylabel("average relative state error")
+% xlabel("ROM dimension")
+% set(gca, 'YScale', 'log')
+% title("training error")
+% grid on
+% legend("show")
+% 
+% figure
+% hold on
+% semilogy(ns,test_error_t,'x-', 'LineWidth', 2,'DisplayName',"intrusive")
+% semilogy(ns,test_error_h,'o-', 'LineWidth', 2,'DisplayName',"rank-suff")
+% semilogy(ns,test_error_s,'s-', 'LineWidth', 2,'DisplayName',"standard")
+% ylabel("average relative state error")
+% xlabel("ROM dimension")
+% set(gca, 'YScale', 'log')
+% title("test error")
+% grid on
+% legend("show")
 
 figure
 hold on

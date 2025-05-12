@@ -30,7 +30,7 @@ F3X = @(X) F3(X(:,1),X(:,2),X(:,3));
 F8X = @(X) F8(X(:,1),X(:,2),X(:,3),X(:,4),X(:,5),X(:,6),X(:,7),X(:,8));
 
 B = 0;
-p = 0; % input signal dimension
+Nu = 0; % input signal dimension
 
 
 xs = linspace(Omega(1),Omega(2),N)';
@@ -165,9 +165,9 @@ n_is__ = n_is(n,is);
 for j = 1:nn
     n_ = ns(j);
     n_is_ = n_is(n_,is);
-    nf_ = sum(n_is_)+p;
+    nf_ = sum(n_is_)+Nu;
 
-    ks = [1:p+n_is_(1), p+n_is__(1)+1:p+n_is__(1)+n_is_(2)];
+    ks = [1:Nu+n_is_(1), Nu+n_is__(1)+1:Nu+n_is__(1)+n_is_(2)];
 
     tX0_ = tX0(1:n_,ks);
     dot_tX_ = dot_tX(1:n_,ks);

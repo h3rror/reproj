@@ -1,6 +1,5 @@
-function dt = dt_estimate(X_b,U_b,Vn1,dt)
+function dt = dt_estimate(X_b,U_b,Vn1,dt,is)
 
-Vn1 = Vn(:,1);
 X1 = X_b(:,1:end-1);
 X2 = X_b(:,2:end);
 dot_X = (X2-X1)/dt;
