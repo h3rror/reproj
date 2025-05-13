@@ -54,11 +54,10 @@ f = @(x,u) F1(x) + F2(x,x);
 
 
 %% generate ROM basis construction data
-X_b = zeros(N,nt);
-U_b = zeros(Nu,nt); 
+X_b = zeros(N,nt+1);
+U_b = zeros(Nu,nt+1); 
 % X0s = 10*[-sin(pi/2*xs)' sin(3*pi/2*xs)']; % -> make intial condition satisfy BC
-% x0 = -sin(pi/2*xs)' ; % -> make intial condition satisfy BC
-x0 = -10*sin(pi/2*xs)' ; % -> make intial condition satisfy BC
+x0 = -sin(pi/2*xs)' ; % -> make intial condition satisfy BC
 
 t = 0;
 x = x0;
@@ -67,13 +66,13 @@ u = U_b(:,1);
 X_b(:,1) = x0;
 % U_b(:,1) = u;
 
-for i=2:nt
+for i=1:nt
     x = x + dt*f(x,u);
     t = t + dt;
     u = U_b(:,i);
 
-    X_b(:,i) = x;
-    % U_b(:,i) = u;
+    X_b(:,i+1) = x;
+    % U_b(:,i+1) = u;
 end
 
 %% construct ROM basis via POD
@@ -107,6 +106,7 @@ U0 = XU(1:Nu,:);
 nf = size(tX0,2);
 tX1 = zeros(n,nf);
 
+% compute time step estimate (3.10)
 dt1 = dt_estimate(X_b,U_b,Vn(:,1),dt,is)
 
 for i = 1:nf
@@ -196,42 +196,12 @@ end
 figure
 hold on
 semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"exactOpInf")
-% semilogy(ns,A1_errors,'x-', 'LineWidth', 2,'DisplayName',"A_1 rank-suff")
-% semilogy(ns,A2_errors,'x-', 'LineWidth', 2,'DisplayName',"A_2 rank-suff")
-% semilogy(ns,B_errors,'x-', 'LineWidth', 2,'DisplayName',"B rank-suff")
-% 
-% semilogy(ns,sA1_errors,'x-', 'LineWidth', 2,'DisplayName',"A_1 standard opinf")
-% semilogy(ns,sA2_errors,'x-', 'LineWidth', 2,'DisplayName',"A_2 standard opinf")
-% semilogy(ns,sB_errors,'x-', 'LineWidth', 2,'DisplayName',"B standard opinf")
 ylabel("operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
 legend("show")
 
-% figure
-% hold on
-% semilogy(ns,train_error_t,'x-', 'LineWidth', 2,'DisplayName',"intrusive")
-% semilogy(ns,train_error_h,'o-', 'LineWidth', 2,'DisplayName',"rank-suff")
-% semilogy(ns,train_error_s,'s-', 'LineWidth', 2,'DisplayName',"standard")
-% ylabel("average relative state error")
-% xlabel("ROM dimension")
-% set(gca, 'YScale', 'log')
-% title("training error")
-% grid on
-% legend("show")
-% 
-% figure
-% hold on
-% semilogy(ns,test_error_t,'x-', 'LineWidth', 2,'DisplayName',"intrusive")
-% semilogy(ns,test_error_h,'o-', 'LineWidth', 2,'DisplayName',"rank-suff")
-% semilogy(ns,test_error_s,'s-', 'LineWidth', 2,'DisplayName',"standard")
-% ylabel("average relative state error")
-% xlabel("ROM dimension")
-% set(gca, 'YScale', 'log')
-% title("test error")
-% grid on
-% legend("show")
 
 figure
 hold on
@@ -258,16 +228,11 @@ legend("Location","northwest")
 ylim([5e-17 1e-15])
 
 
-figure
-hold on
-semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"O burgers")
-
-
 %% visualize singular values
 figure; semilogy(diag(S),'o-')
 hold on
 
-save("data_burgers_periodic","O_errors","condsD");
+save("data_burgers","O_errors","condsD");
 
 
 %% FOM solver running for one time step

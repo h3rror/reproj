@@ -26,7 +26,7 @@ A1 = A1 + eye(N); % additional linear term missing in Allen-Cahn description
 % A3 = A3*JN3;
 B = zeros(N,1);
 B(1) = 1/dt;
-p = 1;
+Nu = 1;
 
 % boundary conditions
 BC = eye(N);
@@ -57,8 +57,8 @@ u_val = @(t) 10*(sin(pi*t)+1); % U_val
 
 
 %% generate ROM basis construction data
-X_b = zeros(N,nt);
-U_b = zeros(1,nt);
+X_b = zeros(N,nt+1);
+U_b = zeros(1,nt+1);
 
 t = 0;
 x = x0;
@@ -67,26 +67,26 @@ u = u_val(t);
 X_b(:,1) = x0;
 U_b(:,1) = u;
 
-for i=2:nt
+for i=1:nt
     x = x + dt*f(x,u);
     t = t + dt;
     u = u_val(t);
 
-    X_b(:,i) = x;
-    U_b(:,i) = u;
+    X_b(:,i+1) = x;
+    U_b(:,i+1) = u;
 end
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b,'econ');
-n = 12;
+n = 14;
 Vn = V(:,1:n);
 
 %% construct intrusive operators
 tA1 = Vn'*A1*Vn;
-Jn3 = power2kron(n,3);
+
 n2 = n*(n+1)/2;
 tA2 = zeros(n,n2);
-% In3 = kron2power(n,3);
-% tA3 = Vn'*A3*IN3*kron(Vn,kron(Vn,Vn))*Jn3;
+
+Jn3 = power2kron(n,3);
 tA3 = precompute_rom_operator(F3X,Vn,3)*Jn3;
 tB = Vn'*B;
 
@@ -94,24 +94,17 @@ tO = [tB tA1 tA2 tA3];
 
 
 %% generate rank-sufficient snapshot data
-
 tX0_pure = rank_suff_basis(n,is);
 U0_pure = 1;
 XU = blkdiag(U0_pure,tX0_pure);
-tX0 = XU(p+1:end,:);
-U0 = XU(1:p,:);
+tX0 = XU(Nu+1:end,:);
+U0 = XU(1:Nu,:);
 
 nf = size(XU,2);
 tX1 = zeros(n,nf);
 
-% dt1 = 1
-Vn1 = Vn(:,1);
-X1 = X_b(:,1:end-1);
-X2 = X_b(:,2:end);
-dot_X = (X2-X1)/dt;
-U_b1 = U_b(:,1:end-1);
-dt1 = 1/max(abs(sqrt(sum(Vn1'*dot_X.^2,1))./sqrt(sum(getOpInfMatrix(Vn1'*X1,U_b1,is).^2,1))))
-
+% compute time step estimate (3.10)
+dt1 = dt_estimate(X_b,U_b,Vn(:,1),dt,is)
 
 for i = 1:nf
     tX1(:,i) = Vn'*single_step(Vn*tX0(:,i),U0(:,i),dt1,f);
@@ -119,7 +112,6 @@ end
 
 dot_tX = (tX1-tX0)/dt1;
 
-% ns = 1:10;
 ns = 1:n;
 nn = numel(ns);
 
@@ -131,16 +123,17 @@ O_errors = zeros(nn,1);
 condsD = zeros(nn,1);
 
 n_is__ = n_is(n,is);
+offset = cumsum(n_is__);
 
 for j = 1:nn
     n_ = ns(j);
     n_is_ = n_is(n_,is);
-    nf_ = sum(n_is_)+p;
+    nf_ = sum(n_is_)+Nu;
 
     % ks = [1:p+n_is_(1), p+n_is__(1)+1:p+n_is__(1)+n_is_(2)];
-    ks = 1:p+n_is_(1);
+    ks = 1:Nu+n_is_(1);
     for jj = 2:numel(is)
-        ks = [ks p+n_is__(jj-1)+(1:n_is_(jj))];
+        ks = [ks Nu+offset(jj-1)+(1:n_is_(jj))];
     end
 
     tX0_ = tX0(1:n_,ks);
@@ -191,7 +184,7 @@ set(gca, 'YScale', 'log')
 
 legend("show")
 
-save("chafee-infante","O_errors","condsD");
+save("data_chafee_infante","O_errors","condsD");
 
 
 %% FOM solver running for one time step

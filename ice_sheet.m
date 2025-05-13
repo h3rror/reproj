@@ -60,8 +60,8 @@ generateFOMdata = false
 
 if generateFOMdata
     %% generate ROM basis construction data
-    X_b = zeros(N,nt);
-    U_b = zeros(1,nt);
+    X_b = zeros(N,nt+1);
+    U_b = zeros(Nu,nt+1);
 
     t = 0;
     x = x0;
@@ -70,13 +70,13 @@ if generateFOMdata
     X_b(:,1) = x0;
     U_b(:,1) = u;
 
-    for i=2:nt
+    for i=1:nt
         x = fsolve(@(x1) x1 - x - dt*f(x1,u),x); % backward Euler
         t = t + dt;
         u = u_val(t);
 
-        X_b(:,i) = x;
-        U_b(:,i) = u;
+        X_b(:,i+1) = x;
+        U_b(:,i+1) = u;
     end
 
     save("icesheet_FOMdata","X_b")
@@ -84,7 +84,7 @@ if generateFOMdata
 else
     %% or load FOM data
     load("icesheet_FOMdata","X_b")
-    U_b = zeros(1,nt);
+    U_b = zeros(1,nt+1);
 end
 
 %% visualize FOM data
@@ -116,20 +116,15 @@ Vn = V(:,1:n);
 tX0_pure = rank_suff_basis(n,is);
 U0_pure = [];
 XU = blkdiag(U0_pure,tX0_pure);
-tX0 = XU(p+1:end,:);
-U0 = XU(1:p,:);
+tX0 = XU(Nu+1:end,:);
+U0 = XU(1:Nu,:);
 
 nf = size(XU,2);
 tX1 = zeros(n,nf);
 
 
-%% compute time step estimate (3.10)
-Vn1 = Vn(:,1);
-X1 = X_POD(:,1:end-1);
-X2 = X_POD(:,2:end);
-dot_X = (X2-X1)/dt;
-U_b1 = U_b(:,1:2000);
-dt1 = 1/max(abs(sqrt(sum(Vn1'*dot_X.^2,1))./sqrt(sum(getOpInfMatrix(Vn1'*X1,U_b1,is).^2,1))))
+% compute time step estimate (3.10)
+dt1 = dt_estimate(X_b,U_b,Vn(:,1),dt,is)
 
 %%
 

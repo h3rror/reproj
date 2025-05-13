@@ -7,14 +7,7 @@ figure(2) % condition numbers
 hold on
 
 
-% load("data_burgers","O_errors","condsD");
-% ns = 1:numel(O_errors);
-% figure(1)
-% semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"Burgers'")
-% figure(2)
-% semilogy(ns,condsD,'x-', 'LineWidth', 2,'DisplayName',"Burgers'")
-
-load("data_chafee-infante","O_errors","condsD");
+load("data_chafee_infante","O_errors","condsD");
 ns = 1:numel(O_errors);
 figure(1)
 semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"Chafee-Infante")
@@ -28,7 +21,7 @@ semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"ice sheet")
 figure(2)
 semilogy(ns,condsD,'x-', 'LineWidth', 2,'DisplayName',"ice sheet")
 
-load("data_burgers_periodic","O_errors","condsD");
+load("data_burgers","O_errors","condsD");
 ns = 1:numel(O_errors);
 figure(1)
 semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"Burgers'")

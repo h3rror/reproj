@@ -7,7 +7,6 @@ n = size(Vn,2);
 
 ms = [];
 Ai = rec_precompute(ms,i,n);
-% Ai = rec_precompute(ms,i,n,Vn,f);
 
     function Ai_ = rec_precompute(ms,i,n)
         % ms: array of mode indices
@@ -17,8 +16,8 @@ Ai = rec_precompute(ms,i,n);
         Ai_ = [];
         %% enforce incrementality structure
         m_max = n;
-    %%
-        for m = 1:m_max 
+        %%
+        for m = 1:m_max
             ms_ = [ms m];
             if length(ms_) == i
                 Ai_ = [Ai_ Vn'*f(Vn(:,ms_))];
