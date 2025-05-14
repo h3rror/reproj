@@ -107,7 +107,7 @@ nf = size(tX0,2);
 tX1 = zeros(n,nf);
 
 % compute time step estimate (3.10)
-dt1 = dt_estimate(X_b,U_b,Vn(:,1),dt,is)
+dt1 = dt_estimate(X_b,U_b,Vn(:,1),dt,is);
 
 for i = 1:nf
     tX1(:,i) = Vn'*single_step(Vn*tX0(:,i),U0(:,i),dt1,f);
@@ -193,6 +193,9 @@ for j = 1:nn
 
 end
 
+savefig("figures/eig_vals.fig")
+saveas(gcf,"figures/eig_vals.png")
+
 figure
 hold on
 semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"exactOpInf")
@@ -214,6 +217,8 @@ grid on
 legend("show")
 legend("Location","northwest")
 
+savefig("figures/energy_violation.fig")
+saveas(gcf,"figures/energy_violation.png")
 
 figure
 hold on
@@ -226,6 +231,9 @@ grid on
 legend("show")
 legend("Location","northwest")
 ylim([5e-17 1e-15])
+
+savefig("figures/symmetry_violation.fig")
+saveas(gcf,"figures/symmetry_violation.png")
 
 
 %% visualize singular values

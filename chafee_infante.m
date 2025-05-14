@@ -104,7 +104,7 @@ nf = size(XU,2);
 tX1 = zeros(n,nf);
 
 % compute time step estimate (3.10)
-dt1 = dt_estimate(X_b,U_b,Vn(:,1),dt,is)
+dt1 = dt_estimate(X_b,U_b,Vn(:,1),dt,is);
 
 for i = 1:nf
     tX1(:,i) = Vn'*single_step(Vn*tX0(:,i),U0(:,i),dt1,f);

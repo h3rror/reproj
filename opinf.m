@@ -18,7 +18,7 @@ end
     [D,A_inds,B_inds] = getOpInfMatrix(tX,U,is);
 
     if verbose==true
-        condD = cond(full(D))
+        condD = cond(full(D));
     else
         condD = false;
     end

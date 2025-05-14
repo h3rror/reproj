@@ -35,6 +35,9 @@ set(gca, 'YScale', 'log')
 grid on
 legend("show")
 
+savefig("figures/operator_errors.fig")
+saveas(gcf,"figures/operator_errors.png")
+
 figure(2)
 ylabel("condition number")
 xlabel("ROM dimension")
@@ -42,3 +45,5 @@ set(gca, 'YScale', 'log')
 grid on
 legend("show")
 
+savefig("figures/condition_numbers.fig")
+saveas(gcf,"figures/condition_numbers.png")

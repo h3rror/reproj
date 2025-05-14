@@ -55,8 +55,8 @@ c2 = 2*gamma*rho^3*g^3/5; % 2.845713606598e7
 
 f = @(x,u) c1*f3(x) + c2*f8(x);
 
-% generateFOMdata = true
-generateFOMdata = false
+generateFOMdata = true
+% generateFOMdata = false
 
 if generateFOMdata
     %% generate ROM basis construction data
@@ -124,7 +124,7 @@ tX1 = zeros(n,nf);
 
 
 % compute time step estimate (3.10)
-dt1 = dt_estimate(X_b,U_b,Vn(:,1),dt,is)
+dt1 = dt_estimate(X_b,U_b,Vn(:,1),dt,is);
 
 %%
 
