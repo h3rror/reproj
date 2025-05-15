@@ -14,7 +14,7 @@ Omega = [0 1000];
 dx = (Omega(2)-Omega(1))/N;
 
 dt = .001;
-t_end = 10;
+t_end = 2;
 nt = t_end/dt;
 
 is = [3 8];
@@ -55,10 +55,10 @@ c2 = 2*gamma*rho^3*g^3/5; % 2.845713606598e7
 
 f = @(x,u) c1*f3(x) + c2*f8(x);
 
-generateFOMdata = true
-% generateFOMdata = false
+generatePODdata = true 
+% generatePODdata = false
+if generatePODdata
 
-if generateFOMdata
     %% generate ROM basis construction data
     X_b = zeros(N,nt+1);
     U_b = zeros(Nu,nt+1);
@@ -198,7 +198,6 @@ legend("show")
 %%
 
 save("data_icesheet","O_errors","condsD");
-
 
 %% FOM solver running for one time step
 function x_1 = single_step(x_0,u_0,dt,f)
