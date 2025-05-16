@@ -190,7 +190,7 @@ for j = 1:nn
 end
 
 savefig("figures/eig_vals.fig")
-saveas(gcf,"figures/eig_vals.pdf")
+exportgraphics(gcf,"figures/eig_vals.pdf")
 
 % figure
 % hold on
@@ -214,7 +214,7 @@ legend("show","Interpreter","latex", "FontSize",12)
 legend("Location","northwest")
 
 savefig("figures/energy_violation.fig")
-saveas(gcf,"figures/energy_violation.pdf")
+exportgraphics(gcf,"figures/energy_violation.pdf")
 
 figure
 hold on
@@ -229,7 +229,7 @@ legend("Location","northwest")
 ylim([1e-17 1e-15])
 
 savefig("figures/symmetry_violation.fig")
-saveas(gcf,"figures/symmetry_violation.pdf")
+exportgraphics(gcf,"figures/symmetry_violation.pdf")
 
 
 %% visualize singular values

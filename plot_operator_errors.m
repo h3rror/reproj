@@ -36,7 +36,7 @@ grid on
 legend("show","Interpreter","latex","FontSize",12)
 
 savefig("figures/operator_errors.fig")
-saveas(gcf,"figures/operator_errors.pdf")
+exportgraphics(gcf,"figures/operator_errors.pdf")
 
 figure(2)
 ylabel("condition number","Interpreter","latex","FontSize",15)
@@ -46,4 +46,4 @@ grid on
 legend("show","Interpreter","latex","FontSize",12)
 
 savefig("figures/condition_numbers.fig")
-saveas(gcf,"figures/condition_numbers.pdf")
+exportgraphics(gcf,"figures/condition_numbers.pdf")
