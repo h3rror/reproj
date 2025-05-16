@@ -10,40 +10,40 @@ hold on
 load("data_chafee_infante","O_errors","condsD");
 ns = 1:numel(O_errors);
 figure(1)
-semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"Chafee-Infante")
+semilogy(ns,O_errors,'^-', 'LineWidth', 2,'DisplayName',"Chafee-Infante", "MarkerSize",10)
 figure(2)
-semilogy(ns,condsD,'x-', 'LineWidth', 2,'DisplayName',"Chafee-Infante")
+semilogy(ns,condsD,'^-', 'LineWidth', 2,'DisplayName',"Chafee-Infante", "MarkerSize",10)
 
 load("data_icesheet","O_errors","condsD");
 ns = 1:numel(O_errors);
 figure(1)
-semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"ice sheet")
+semilogy(ns,O_errors,'*-', 'LineWidth', 2,'DisplayName',"ice sheet", "MarkerSize",10)
 figure(2)
-semilogy(ns,condsD,'x-', 'LineWidth', 2,'DisplayName',"ice sheet")
+semilogy(ns,condsD,'*-', 'LineWidth', 2,'DisplayName',"ice sheet", "MarkerSize",10)
 
 load("data_burgers","O_errors","condsD");
 ns = 1:numel(O_errors);
 figure(1)
-semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"Burgers'")
+semilogy(ns,O_errors,'+-', 'LineWidth', 2,'DisplayName',"Burgers'", "MarkerSize",10)
 figure(2)
-semilogy(ns,condsD,'x-', 'LineWidth', 2,'DisplayName',"Burgers'")
+semilogy(ns,condsD,'+-', 'LineWidth', 2,'DisplayName',"Burgers'", "MarkerSize",10)
 
 figure(1)
-ylabel("relative operator error")
-xlabel("ROM dimension")
+ylabel("relative operator error","Interpreter","latex", "FontSize",15)
+xlabel("ROM dimension","Interpreter","latex","FontSize",15)
 set(gca, 'YScale', 'log')
 grid on
-legend("show")
+legend("show","Interpreter","latex","FontSize",12)
 
 savefig("figures/operator_errors.fig")
-saveas(gcf,"figures/operator_errors.png")
+saveas(gcf,"figures/operator_errors.pdf")
 
 figure(2)
-ylabel("condition number")
-xlabel("ROM dimension")
+ylabel("condition number","Interpreter","latex","FontSize",15)
+xlabel("ROM dimension","Interpreter","latex","FontSize",15)
 set(gca, 'YScale', 'log')
 grid on
-legend("show")
+legend("show","Interpreter","latex","FontSize",12)
 
 savefig("figures/condition_numbers.fig")
-saveas(gcf,"figures/condition_numbers.png")
+saveas(gcf,"figures/condition_numbers.pdf")

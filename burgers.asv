@@ -179,7 +179,7 @@ for j = 1:nn
     hold on
     semilogy(n_*ones(n_,1),-eig(tA1_),'bo', "DisplayName","intrusive", "MarkerSize",10)
     semilogy(n_*ones(n_,1),-eig(hA1_),'rx', "DisplayName","exactOpInf", "MarkerSize",10)
-    ylabel("negated eigenvalues","Interpreter","latex", "FontSize",15)
+    ylabel("- eigenvalues","Interpreter","latex", "FontSize",15)
     xlabel("ROM dimension","Interpreter","latex", "FontSize",15)
     set(gca, 'YScale', 'log')
     % legend("show")
@@ -190,7 +190,7 @@ for j = 1:nn
 end
 
 savefig("figures/eig_vals.fig")
-saveas(gcf,"figures/eig_vals.pdf")
+saveas(gcf,"figures/eig_vals.png")
 
 % figure
 % hold on
@@ -214,12 +214,12 @@ legend("show","Interpreter","latex", "FontSize",12)
 legend("Location","northwest")
 
 savefig("figures/energy_violation.fig")
-saveas(gcf,"figures/energy_violation.pdf")
+saveas(gcf,"figures/energy_violation.png")
 
 figure
 hold on
-semilogy(ns,h_symmetry_error,'x-', 'LineWidth', 2,'DisplayName',"exactOpInf", "MarkerSize",10)
-semilogy(ns,t_symmetry_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive", "MarkerSize",10)
+semilogy(ns,h_symmetry_error,'x-', 'LineWidth', 2,'DisplayName',"exactOpInf")
+semilogy(ns,t_symmetry_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive")
 ylabel("diffusion matrix symmetry violation","Interpreter","latex", "FontSize",15)
 xlabel("ROM dimension","Interpreter","latex", "FontSize",15)
 set(gca, 'YScale', 'log')
@@ -229,12 +229,12 @@ legend("Location","northwest")
 ylim([1e-17 1e-15])
 
 savefig("figures/symmetry_violation.fig")
-saveas(gcf,"figures/symmetry_violation.pdf")
+saveas(gcf,"figures/symmetry_violation.png")
 
 
 %% visualize singular values
-% figure; semilogy(diag(S),'o-')
-% hold on
+figure; semilogy(diag(S),'o-')
+hold on
 
 save("data_burgers","O_errors","condsD");
 
