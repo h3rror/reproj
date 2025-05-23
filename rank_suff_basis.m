@@ -20,7 +20,9 @@ X = sparse(X);
 
     function Xi = rec_basis(i,n)
 
-        if i == 1
+        if i == 0
+            Xi = zeros(n,1);
+        elseif i == 1
             Xi = eye(n);
         else
             Xi = [];
