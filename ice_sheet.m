@@ -3,7 +3,7 @@ close all;
 
 rng(1); % for reproducibility
 
-warning("eliminate input signal u!")
+addpath('source/');
 
 N = 512;
 % N = 12;
@@ -55,8 +55,8 @@ c2 = 2*gamma*rho^3*g^3/5; % 2.845713606598e7
 
 f = @(x,u) c1*f3(x) + c2*f8(x);
 
-generatePODdata = true 
-% generatePODdata = false
+% generatePODdata = true 
+generatePODdata = false
 if generatePODdata
 
     %% generate ROM basis construction data
@@ -79,30 +79,30 @@ if generatePODdata
         U_b(:,i+1) = u;
     end
 
-    save("icesheet_FOMdata","X_b")
+    save("data/icesheet_FOMdata","X_b")
 
 else
     %% or load FOM data
-    load("icesheet_FOMdata","X_b")
+    load("data/icesheet_FOMdata","X_b")
     U_b = zeros(1,nt+1);
 end
 
 %% visualize FOM data
 
-% writerObj = VideoWriter("icesheet",'MPEG-4'); %'Motion JPEG AVI');
-% writerObj.FrameRate = 15;
-% open(writerObj);
-% for i =1:100:nt+1
-% plot(xs,X_b(:,i));
-% ylim([0 2.6])
-% xlabel("spatial dimension")
-% ylabel("ice thickness")
-% legend("t="+num2str((i-1)*dt))
-% frame = getframe(gcf);
-% writeVideo(writerObj,frame);
-% end
-% 
-% close(writerObj);
+writerObj = VideoWriter("figures/icesheet",'MPEG-4'); %'Motion JPEG AVI');
+writerObj.FrameRate = 15;
+open(writerObj);
+for i =1:100:(nt+1)
+plot(xs,X_b(:,i));
+ylim([0 2.6])
+xlabel("spatial dimension")
+ylabel("ice thickness")
+legend("t="+num2str((i-1)*dt))
+frame = getframe(gcf);
+writeVideo(writerObj,frame);
+end
+
+close(writerObj);
 
 %% construct ROM basis via POD
 X_POD = X_b(:,1:2001);
@@ -148,7 +148,6 @@ tA8 = c2*precompute_rom_operator(F8X,Vn,8)*Jn8;
 ns = 1:n;
 nn = numel(ns);
 
-B_errors = zeros(nn,1);
 A3_errors = zeros(nn,1);
 A8_errors = zeros(nn,1);
 
@@ -197,7 +196,7 @@ set(gca, 'YScale', 'log')
 legend("show")
 %%
 
-save("data_icesheet","O_errors","condsD");
+save("data/data_icesheet","O_errors","condsD");
 
 %% FOM solver running for one time step
 function x_1 = single_step(x_0,u_0,dt,f)

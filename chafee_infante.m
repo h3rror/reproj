@@ -3,6 +3,8 @@ close all;
 
 rng(1); % for reproducibility
 
+addpath('source/');
+
 N = 128;
 % N = 12;
 % N = 64;
@@ -184,7 +186,7 @@ set(gca, 'YScale', 'log')
 
 legend("show")
 
-save("data_chafee_infante","O_errors","condsD");
+save("data/data_chafee_infante","O_errors","condsD");
 
 
 %% FOM solver running for one time step

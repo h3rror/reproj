@@ -3,6 +3,7 @@ close all;
 
 rng(1); % for reproducibility
 
+addpath('source/');
 
 N = 128;
 
@@ -236,7 +237,7 @@ exportgraphics(gcf,"figures/symmetry_violation.pdf")
 % figure; semilogy(diag(S),'o-')
 % hold on
 
-save("data_burgers","O_errors","condsD");
+save("data/data_burgers","O_errors","condsD");
 
 
 %% FOM solver running for one time step
