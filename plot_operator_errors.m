@@ -7,21 +7,21 @@ figure(2) % condition numbers
 hold on
 
 
-load("data_chafee_infante","O_errors","condsD");
+load("data/data_chafee_infante","O_errors","condsD");
 ns = 1:numel(O_errors);
 figure(1)
 semilogy(ns,O_errors,'^-', 'LineWidth', 2,'DisplayName',"Chafee-Infante", "MarkerSize",10)
 figure(2)
 semilogy(ns,condsD,'^-', 'LineWidth', 2,'DisplayName',"Chafee-Infante", "MarkerSize",10)
 
-load("data_icesheet","O_errors","condsD");
+load("data/data_icesheet","O_errors","condsD");
 ns = 1:numel(O_errors);
 figure(1)
 semilogy(ns,O_errors,'*-', 'LineWidth', 2,'DisplayName',"ice sheet", "MarkerSize",10)
 figure(2)
 semilogy(ns,condsD,'*-', 'LineWidth', 2,'DisplayName',"ice sheet", "MarkerSize",10)
 
-load("data_burgers","O_errors","condsD");
+load("data/data_burgers","O_errors","condsD");
 ns = 1:numel(O_errors);
 figure(1)
 semilogy(ns,O_errors,'+-', 'LineWidth', 2,'DisplayName',"Burgers'", "MarkerSize",10)
