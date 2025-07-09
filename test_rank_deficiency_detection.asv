@@ -1,0 +1,49 @@
+clear all;
+close all;
+
+rng(1); % for reproducibility
+
+addpath('source/');
+
+%%
+n = 3;
+is = [2];
+
+basis = rank_suff_basis(n,is);
+K = size(basis,2);
+
+%% options
+b_rand = true;
+b_trunc = true;
+
+%% random weighting of snapshot data
+if b_rand
+    R = rand(K,K);
+    [Q,~,~] = svd(R);
+    basis = basis*Q;
+end
+%% truncate basis
+if b_trunc
+    n1 = n; % < K
+    basis1 = basis(:,1:n1);
+end
+%% generate snapshot data
+P = uniquepowers(basis,is);
+
+A = randi(n^2,n,K);
+Pdot = A*P;
+
+%% detect rank deficiency and fix it
+if b_trunc
+    [P_ortho,S,~] = svd(P);
+    diag(S)
+    P_comp = P_ortho(:,n1+1:end)
+end
+%% exact OpInf
+
+Ahat = Pdot/P
+norm(Ahat-A)
+
+
+
+
