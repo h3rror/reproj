@@ -15,9 +15,13 @@ basis1 = basis0;
 K = size(basis1,2);
 
 %% options
-% b_rand = true;
-b_rand = false;
+b_rand = true;
+% b_rand = false;
 b_trunc = true;
+
+%% user-specified tolerances
+t_sigma = 1e-7;
+t_basis = 1e-3;
 
 %% random weighting of snapshot data
 if b_rand
@@ -41,18 +45,26 @@ Pdot1 = f(basis1);
 
 %% detect rank deficiency and fix it
 if b_trunc
-    [P_ortho,S,~] = svd(P1);
+    [U,S,~] = svd(P1);
     diag(S)
-    % P2 = P_ortho(:,n1+1:end);
-    P2 = P0(:,n1+1:end); % cheat
-    basis2 = basis0*inv(P0)*P2;
+    n11 = sum(diag(S)>t_sigma)
+    S_trunc = S(1:n11,1:n11);
+    P11 = U(:,1:n11);
+    Pdot11 = Pdot1*P1'*P11*inv(S_trunc)^2;
+    recovery = vecwise_2norm(P11*P11'*P0)./vecwise_2norm(P0);
+    sorted = sort(recovery);
+    treshold_ = max(t_basis,sorted(K-n11))
+    % basis2 = basis0(:,vecwise_2norm(P0 - P11*P11'*P0)>t_basis);
+    basis2 = basis0(:,recovery <= treshold_);
+    P2 = uniquepowers(basis2,is);
 
     Pdot2 = f(basis2);
-    Pdot = [Pdot1 Pdot2];
+    Pdot = [Pdot11 Pdot2];
+    P = [P11 P2];
 end
 %% exact OpInf
 
-Ahat = Pdot/P0
+Ahat = Pdot/P
 norm(Ahat-A)
 
 
