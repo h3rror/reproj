@@ -1,7 +1,8 @@
-function Ais = precompute_rom_operator_param(f,Vn,i,d)
+function Ais = precompute_rom_operator_param(f,Vn,i,q)
 
-
-for i=1:d
-    mu_i = one_hot(i,d);
-    precompute_rom_operator(@(X) f(X,mu_i),Vn,i);
+n = size(Vn,2);
+Ais = zeros(n,n_is(n,i),q);
+for k=1:q
+    theta_k = one_hot(k,q);
+    Ais(:,:,k) = precompute_rom_operator(@(X) f(X,theta_k),Vn,i);
 end

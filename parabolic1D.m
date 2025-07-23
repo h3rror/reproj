@@ -78,10 +78,10 @@ n = 10;
 Vn = V(:,1:n);
 
 %% construct intrusive operators
-tA1 = precompute_rom_operator(F1X,Vn,1);
+tA1 = precompute_rom_operator(F1X,Vn,1,qA);
 
-Jn2 = power2kron(n,2);
-tA2 = precompute_rom_operator(F2X,Vn,2)*Jn2;
+% Jn2 = power2kron(n,2);
+% tA2 = precompute_rom_operator(F2X,Vn,2)*Jn2;
 
 % tA2_2= Vn'*C*kron(Vn,Vn)*Jn2;
 % norm(tA2-tA2_2)
