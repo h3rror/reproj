@@ -45,9 +45,9 @@ D = D/dx^2;
 
 F1 = @(x) D*x;
 
-%%
-F1X = @(X) F1(X(:,1));
-F2X = @(X) F2(X(:,1),X(:,2));
+%% 
+F1X = @(X) F1(X(:,1));         % same as F1 but with consistent notation
+F2X = @(X) F2(X(:,1),X(:,2));  % enable storing variables in one matrix
 
 Nu = 0; % input signal dimension
 
