@@ -112,8 +112,8 @@ end
 
 dot_tX = (tX1-tX0)/dt1;
 
-tX0 = int32(full(tX0));
-U0 = int32(full(U0));
+% tX0 = int32(full(tX0));
+% U0 = int32(full(U0));
 
 %%
 ns = 1:n;
