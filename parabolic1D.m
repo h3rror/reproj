@@ -29,11 +29,11 @@ D(1,N) = 1;
 D = D/dx^2;
 % D = eye(N);
 
-d = 2; % number of parameters
+d = 4; % number of parameters
 qA = d; % number of expansion terms
 s = d; % number of parameter samples
 % mu = (1:d)';
-mus = ones(s,s) + eye(s);
+mus = ones(s,s) + eye(s) + magic(s);
 theta_A = @(mu) mu;
 
 As = zeros(N,N,qA);
