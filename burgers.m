@@ -78,7 +78,8 @@ end
 
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b,'econ');
-n = 10;
+% n = 10;
+n = 0;
 Vn = V(:,1:n);
 
 %% construct intrusive operators
