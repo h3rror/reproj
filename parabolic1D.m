@@ -1,0 +1,207 @@
+clear all;
+close all;
+
+rng(1); % for reproducibility
+
+addpath('source/');
+
+% N = 128;
+N = 16;
+% N = 6;
+
+%% 1D parabolic problem with piecewise constant diffusion coefficient as suggested by SHane McQuarrie
+
+Omega = [-1 1];
+xs = linspace(Omega(1),Omega(2),N);
+dx = (Omega(2)-Omega(1))/N;
+
+dt = 1e-4;
+t_end = 1;
+nt = t_end/dt;
+
+is = [1];
+I = speye(N);
+
+%% negative semi-definite diffusion operator
+D = -2*diag(ones(N,1)) + diag(ones(N-1,1),1) + diag(ones(N-1,1),-1);
+D(N,1) = 1;
+D(1,N) = 1;
+D = D/dx^2;
+% D = eye(N);
+
+d = 4; % number of parameters
+qA = d; % number of expansion terms
+s = d; % number of parameter samples
+% mu = (1:d)';
+mus = ones(s,s) + eye(s) + magic(s);
+theta_A = @(mu) mu;
+
+As = zeros(N,N,qA);
+for i =1:qA
+    mu_i = one_hot(i,d);
+    nu_i = diag(kron(mu_i,ones(N/d,1)));
+    As(:,:,i) = nu_i*D;
+end
+
+F1 = @(x,theta) affine_op(As,theta)*x;
+
+%%
+F1X = @(X,theta) F1(X(:,1),theta);
+
+Nu = 0; % input signal dimension
+
+f = @(x,u,mu) F1(x,theta_A(mu));
+
+
+%% generate ROM basis construction data
+X_b = zeros(N,nt+1,s);
+U_b = zeros(Nu,nt+1,s); 
+% X0s = 10*[-sin(pi/2*xs)' sin(3*pi/2*xs)']; % -> make intial condition satisfy BC
+x0 = -sin(pi/2*xs)' ; % -> make intial condition satisfy BC
+
+t = 0;
+x = x0;
+u = U_b(:,1);
+
+X_b(:,1) = x0;
+% U_b(:,1) = u;
+
+for k = 1:s
+    mu = mus(:,k);
+    for i=1:nt
+        x = single_step(x,0,dt,f,mu);
+        t = t + dt;
+        u = U_b(:,i,k);
+
+        X_b(:,i+1,k) = x;
+    end
+end
+
+%% construct ROM basis via POD
+[V,S,~] = svd(X_b(:,:),'econ');
+% n = 10;
+n = 6;
+
+Vn = V(:,1:n);
+% Vn = eye(n);
+
+%% construct intrusive operators
+tA1s = precompute_rom_operator_param(F1X,Vn,1,qA);
+
+% Jn2 = power2kron(n,2);
+% tA2 = precompute_rom_operator(F2X,Vn,2)*Jn2;
+
+% tA2_2= Vn'*C*kron(Vn,Vn)*Jn2;
+% norm(tA2-tA2_2)
+
+%% generate rank-sufficient snapshot data
+tX0_pure = rank_suff_basis(n,is);
+U0_pure = [];
+XU = blkdiag(U0_pure,tX0_pure);
+tX0 = XU(Nu+1:end,:);
+U0 = XU(1:Nu,:);
+
+% tX0 = rank_suff_basis(n,is);
+% U0 = [];
+
+nf = size(tX0,2);
+tX1 = zeros(n,nf,s);
+
+% compute time step estimate (3.10)
+dt1 = dt_estimate(X_b(:,:,1),U_b(:,:,1),Vn(:,1),dt,is); % internally computes derivatives, so we cannot concatenate trajectories
+
+for k =1:s
+    mu = mus(:,k);
+    for i = 1:nf
+        tX1(:,i,k) = Vn'*single_step(Vn*tX0(:,i),U0(:,i),dt1,f,mu);
+    end
+end
+
+dot_tX = (tX1-tX0)/dt1;
+
+%%
+ns = 1:n;
+% ns = n;
+nn = numel(ns);
+
+B_errors = zeros(nn,1);
+A1_errors = zeros(nn,1);
+A2_errors = zeros(nn,1);
+
+O_errors = zeros(nn,1);
+condsD = zeros(nn,s);
+
+n_is__ = n_is(n,is);
+
+h_energy_error = zeros(nn,1);
+t_energy_error = zeros(nn,1);
+
+h_symmetry_error = zeros(nn,1);
+t_symmetry_error = zeros(nn,1);
+
+for j = 1:nn
+    n_ = ns(j);
+    n_is_ = n_is(n_,is);
+    nf_ = sum(n_is_)+Nu;
+
+    % ks = [1:Nu+n_is_(1), Nu+n_is__(1)+1:Nu+n_is__(1)+n_is_(2)];
+    ks = [1:Nu+n_is_(1)];
+
+    tX0_ = tX0(1:n_,ks);
+    U0_ = U0(:,ks);
+
+    hA1s_ = zeros(n_,n_,s);
+    tA1s_ = zeros(n_,n_,s);
+
+    for k =1:s
+        dot_tX_ = dot_tX(1:n_,ks,k);
+
+        [O,A_inds,B_inds,condD] = opinf(dot_tX_,tX0_,U0_,is,true);
+        hA1_ = O(:,A_inds(1,1):A_inds(1,2));
+        % hA2_ = O(:,A_inds(2,1):A_inds(2,2));
+        hB_ = O(:,B_inds(1,1):B_inds(1,2));
+
+        % tB_ = tB(1:n_,:);
+        tA1_ = tA1s(1:n_,1:n_is_(1),k);
+        % tA2_ = tA2(1:n_,1:n_is_(2));
+
+        % tO_ = [tA1_ tA2_];
+        tO_ = [tA1_];
+        % O_errors(j,k) = norm(O-tO_,"fro")/norm(tO_,"fro");
+
+        condsD(j,k) = condD;
+
+        hA1s_(:,:,k) = hA1_;
+        tA1s_(:,:,k) = tA1_;
+    end
+
+    hA1s_ = hA1s_(:,:)*kron(inv(theta_A(mus)),eye(n_));
+    % O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro")/norm(tO_,"fro");
+    O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro");
+
+end
+
+figure
+hold on
+semilogy(ns,sum(O_errors,2)/s,'x-', 'LineWidth', 2,'DisplayName',"exactOpInf")
+ylabel("operator error")
+xlabel("ROM dimension")
+set(gca, 'YScale', 'log')
+grid on
+legend("show")
+
+
+
+
+%% visualize singular values
+% figure; semilogy(diag(S),'o-')
+% hold on
+
+% save("data/data_burgers","O_errors","condsD");
+
+
+%% FOM solver running for one time step
+function x_1 = single_step(x_0,u_0,dt,f,mu)
+    x_1 = x_0 + dt*f(x_0,u_0,mu);
+end
+
