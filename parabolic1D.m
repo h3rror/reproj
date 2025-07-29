@@ -180,7 +180,7 @@ for j = 1:nn
         tA1s_(:,:,k) = tA1_;
     end
 
-    hA1s_ = hA1s_(:,:)*kron(inv(Theta_A),eye(n_)');
+    hA1s_ = hA1s_(:,:)*kron(inv(Theta_A),eye(n_))';
     % O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro")/norm(tO_,"fro");
     O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro");
 
