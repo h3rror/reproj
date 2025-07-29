@@ -29,11 +29,11 @@ D(1,N) = 1;
 D = D/dx^2;
 % D = eye(N);
 
-d = 8; % number of parameters
+d = 4; % number of parameters
 qA = d; % number of expansion terms
 s = d; % number of parameter samples
 % mu = (1:d)';
-mus = ones(s,s) + eye(s) + ;
+mus = ones(s,s) + eye(s) + magic(s);
 theta_A = @(mu) mu;
 
 As = zeros(N,N,qA);
@@ -42,6 +42,14 @@ for i =1:qA
     nu_i = diag(kron(mu_i,ones(N/d,1)));
     As(:,:,i) = nu_i*D;
 end
+
+% Thetas = zeros(s,qA);
+% for i=1:s
+%     mu_i = mus(:,i);
+%     Thetas(i,:) = theta_A(mu_i)'; 
+% end
+Theta_A = theta_A(mus)';
+Thetas{1} = Theta_A;
 
 F1 = @(x,theta) affine_op(As,theta)*x;
 
@@ -133,12 +141,6 @@ condsD = zeros(nn,s);
 
 n_is__ = n_is(n,is);
 
-h_energy_error = zeros(nn,1);
-t_energy_error = zeros(nn,1);
-
-h_symmetry_error = zeros(nn,1);
-t_symmetry_error = zeros(nn,1);
-
 for j = 1:nn
     n_ = ns(j);
     n_is_ = n_is(n_,is);
@@ -175,7 +177,7 @@ for j = 1:nn
         tA1s_(:,:,k) = tA1_;
     end
 
-    hA1s_ = hA1s_(:,:)*kron(inv(theta_A(mus))',eye(n_));
+    hA1s_ = hA1s_(:,:)*kron(inv(Theta_A),eye(n_)');
     % O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro")/norm(tO_,"fro");
     O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro");
 

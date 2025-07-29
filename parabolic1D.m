@@ -43,6 +43,14 @@ for i =1:qA
     As(:,:,i) = nu_i*D;
 end
 
+% Thetas = zeros(s,qA);
+% for i=1:s
+%     mu_i = mus(:,i);
+%     Thetas(i,:) = theta_A(mu_i)'; 
+% end
+Theta_A = theta_A(mus)';
+Thetas{1} = Theta_A;
+
 F1 = @(x,theta) affine_op(As,theta)*x;
 
 %%
@@ -133,12 +141,6 @@ condsD = zeros(nn,s);
 
 n_is__ = n_is(n,is);
 
-h_energy_error = zeros(nn,1);
-t_energy_error = zeros(nn,1);
-
-h_symmetry_error = zeros(nn,1);
-t_symmetry_error = zeros(nn,1);
-
 for j = 1:nn
     n_ = ns(j);
     n_is_ = n_is(n_,is);
@@ -152,6 +154,9 @@ for j = 1:nn
 
     hA1s_ = zeros(n_,n_,s);
     tA1s_ = zeros(n_,n_,s);
+
+    tX = repmat(full(tX0),1,1,s);
+    [O_mono,A_inds,B_inds,condD] = p_opinf(dot_tX,tX,U0_,is,Thetas,true);
 
     for k =1:s
         dot_tX_ = dot_tX(1:n_,ks,k);
@@ -175,7 +180,7 @@ for j = 1:nn
         tA1s_(:,:,k) = tA1_;
     end
 
-    hA1s_ = hA1s_(:,:)*kron(inv(theta_A(mus)),eye(n_));
+    hA1s_ = hA1s_(:,:)*kron(inv(Theta_A),eye(n_)');
     % O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro")/norm(tO_,"fro");
     O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro");
 
