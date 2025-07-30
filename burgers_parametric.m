@@ -1,0 +1,279 @@
+clear all;
+close all;
+
+rng(1); % for reproducibility
+
+addpath('source/');
+
+% N = 128;
+N = 16;
+% N = 6;
+
+%% Burgers' model based on https://epubs.siam.org/doi/epdf/10.1137/19M1292448
+
+Omega = [-1 1];
+xs = linspace(Omega(1),Omega(2),N);
+dx = (Omega(2)-Omega(1))/N;
+
+dt = 1e-4;
+% t_end = 1;
+t_end = 10*dt;
+nt = t_end/dt;
+
+is = [1 2];
+I = speye(N);
+
+%% skew-symmetric convection operator for Burger's equation as described in
+% https://www.sciencedirect.com/science/article/pii/S0021999124002523
+index = @(x) mod(x-1,N)+1;
+kron_ind = @(i,j) i+(j-1)*N;
+
+C = zeros(N,N^2);
+for i = 1:N
+    C(i,kron_ind(index(i-1),index(i-1))) = 1; % u_{i-1}^2
+    C(i,kron_ind(index(i+1),index(i+1))) = -1; % u_{i+1}^2
+    C(i,kron_ind(index(i-1),i)) = 1; % u_i u_{i-1}
+    C(i,kron_ind(index(i+1),i)) = -1; % u_i u_{i+1}
+end
+
+C = C/(3*dx);
+
+F2 = @(x1,x2) C*kron(x1,x2);
+
+qH = 1;
+
+%% negative semi-definite diffusion operator
+D = -2*diag(ones(N,1)) + diag(ones(N-1,1),1) + diag(ones(N-1,1),-1);
+D(N,1) = 1;
+D(1,N) = 1;
+D = D/dx^2;
+% D = eye(N);
+
+d = 4; % number of parameters
+qA = d; % number of expansion terms
+s = d; % number of parameter samples
+% mu = (1:d)';
+mus = ones(s,s) + eye(s) + magic(s);
+theta_A = @(mu) mu;
+
+As = zeros(N,N,qA);
+for i =1:qA
+    mu_i = one_hot(i,d);
+    nu_i = diag(kron(mu_i,ones(N/d,1)));
+    As(:,:,i) = nu_i*D;
+end
+
+% Thetas = zeros(s,qA);
+% for i=1:s
+%     mu_i = mus(:,i);
+%     Thetas(i,:) = theta_A(mu_i)'; 
+% end
+Theta_A = theta_A(mus)';
+Thetas{1} = Theta_A;
+
+% theta_H = @(mu) 1;
+% Theta_H = theta_H(mus)';
+Theta_H = ones(s,qH);
+Thetas{2} = Theta_H;
+[TH,~,~] = svd(Theta_H);
+Theta_H_fill = TH;
+Theta_H_fill(:,1:qH) = Theta_H;
+
+F1 = @(x,theta) affine_op(As,theta)*x;
+
+%%
+F1X = @(X,theta) F1(X(:,1),theta);
+F2X = @(X) F2(X(:,1),X(:,2));  % enable storing variables in one matrix
+
+Nu = 0; % input signal dimension
+
+f = @(x,u,mu) F1(x,theta_A(mu)) + F2(x,x);
+
+
+%% generate ROM basis construction data
+X_b = zeros(N,nt+1,s);
+U_b = zeros(Nu,nt+1,s); 
+% X0s = 10*[-sin(pi/2*xs)' sin(3*pi/2*xs)']; % -> make intial condition satisfy BC
+x0 = -sin(pi/2*xs)' ; % -> make intial condition satisfy BC
+
+for k = 1:s
+t = 0;
+x = x0;
+u = U_b(:,1,s);
+
+X_b(:,1,k) = x0;
+% U_b(:,1) = u;
+
+    mu = mus(:,k);
+    for i=1:nt
+        x = single_step(x,0,dt,f,mu);
+        t = t + dt;
+        u = U_b(:,i,k);
+
+        X_b(:,i+1,k) = x;
+    end
+end
+
+%% construct ROM basis via POD
+[V,S,~] = svd(X_b(:,:),'econ');
+% n = 10;
+n = 6;
+
+Vn = V(:,1:n);
+% Vn = eye(n);
+
+%% opinf on ROM basis snapshot data
+% tX_b = Vn'*X_b;
+tX_b = pagemtimes(Vn',X_b);
+tX_b1 = tX_b(:,1:end-1,:);
+tX_b2 = tX_b(:,2:end,:);
+dot_tX_b = (tX_b1-tX_b2)/dt;
+
+[O,A_inds,B_inds,condD] = p_opinf(dot_tX_b,tX_b1,[],is,Thetas,true);
+sota.O = O;
+sota.condsD = condD;
+
+%% construct intrusive operators
+tA1s = precompute_rom_operator_param(F1X,Vn,1,qA);
+Jn2 = power2kron(n,2);
+tA2 = precompute_rom_operator(F2X,Vn,2)*Jn2;
+
+intr.O = [tA1s(:,:) tA2];
+
+%% generate rank-sufficient snapshot data
+tX0_pure = rank_suff_basis(n,is);
+U0_pure = [];
+XU = blkdiag(U0_pure,tX0_pure);
+tX0 = XU(Nu+1:end,:);
+U0 = XU(1:Nu,:);
+
+% tX0 = rank_suff_basis(n,is);
+% U0 = [];
+
+nf = size(tX0,2);
+tX1 = zeros(n,nf,s);
+
+% compute time step estimate (3.10)
+dt1 = dt_estimate(X_b(:,:,1),U_b(:,:,1),Vn(:,1),dt,is); % internally computes derivatives, so we cannot concatenate trajectories
+
+for k =1:s
+    mu = mus(:,k);
+    for i = 1:nf
+        tX1(:,i,k) = Vn'*single_step(Vn*tX0(:,i),U0(:,i),dt1,f,mu);
+    end
+end
+
+dot_tX = (tX1-tX0)/dt1;
+
+%%
+ns = 1:n;
+% ns = n;
+nn = numel(ns);
+
+% B_errors = zeros(nn,1);
+% A1_errors = zeros(nn,1);
+% A2_errors = zeros(nn,1);
+
+deco.O_errors = zeros(nn,1);
+deco.condsD = zeros(nn,s);
+
+mono.O_errors = zeros(nn,1);
+mono.condsD = zeros(nn,1);
+
+n_is__ = n_is(n,is);
+
+qs = [qA qH];
+
+for j = 1:nn
+    n_ = ns(j);
+    n_is_ = n_is(n_,is);
+    nf_ = sum(n_is_)+Nu;
+
+    ks = [1:Nu+n_is_(1), Nu+n_is__(1)+1:Nu+n_is__(1)+n_is_(2)];
+    % ks = [1:Nu+n_is_(1)];
+
+    tX0_ = tX0(1:n_,ks);
+    dot_tX_ = dot_tX(1:n_,ks,:);
+    U0_ = U0(:,ks);
+
+    hA1s_ = zeros(n_,n_,s); % last dimension should actually be qA
+    tA1s_ = zeros(n_,n_,s);
+    hA2s_ = zeros(n_,n_is_(2),s); 
+    tA2s_ = zeros(n_,n_is_(2),s); 
+
+    tX = repmat(full(tX0_),1,1,s);
+    [O,A_inds,B_inds,condD] = p_opinf(dot_tX_,tX,U0_,is,Thetas,true);
+    mono.O = O;
+    mono.condsD(j) = condD;
+
+    for k =1:s
+        dot_tX_ = dot_tX(1:n_,ks,k);
+        % is_ = is(qs>=k);
+        is_ = is;
+
+        [O,A_inds,B_inds,condD] = opinf(dot_tX_,tX0_,U0_,is_,true);
+        hA1_ = O(:,A_inds(1,1):A_inds(1,2));
+        hA2_ = O(:,A_inds(2,1):A_inds(2,2));
+        hB_ = O(:,B_inds(1,1):B_inds(1,2));
+
+        % tB_ = tB(1:n_,:);
+        tA1_ = tA1s(1:n_,1:n_is_(1),k);
+        tA2_ = tA2(1:n_,1:n_is_(2));
+
+        tO_ = [tA1_ tA2_];
+        % tO_ = [tA1_];
+        % O_errors(j,k) = norm(O-tO_,"fro")/norm(tO_,"fro");
+
+        deco.condsD(j,k) = condD;
+
+        hA1s_(:,:,k) = hA1_;
+        hA2s_(:,:,k) = hA2_;
+        tA1s_(:,:,k) = tA1_;
+        tA2s_(:,:,k) = tA2_;
+    end
+
+    hA1s_ = hA1s_(:,:)*kron(inv(Theta_A),eye(n_))';
+    hA2s_ = hA2s_(:,:)*kron(inv(Theta_H_fill),eye(n_))';
+    deco.O = [hA1s_ hA2s_];
+    intr.O = [tA1s_(:,:) tA2s_(:,:)];
+    % O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro")/norm(tO_,"fro");
+    deco.O_errors(j) = norm(intr.O-deco.O,"fro");
+    mono.O_errors(j) = norm(intr.O-mono.O,"fro");
+
+end
+
+figure
+hold on
+semilogy(ns,sum(mono.O_errors,2)/qA,'x-', 'LineWidth', 2,'DisplayName',"monolithic")
+semilogy(ns,sum(deco.O_errors,2)/qA,'x-', 'LineWidth', 2,'DisplayName',"decoupled")
+ylabel("operator error")
+xlabel("ROM dimension")
+set(gca, 'YScale', 'log')
+grid on
+legend("show")
+
+figure
+hold on
+semilogy(ns,mono.condsD,'x-', 'LineWidth', 2,'DisplayName',"monolithic")
+semilogy(ns,sum(deco.condsD,2)/s,'x-', 'LineWidth', 2,'DisplayName',"decoupled")
+semilogy(n,sota.condsD, 'x-', 'LineWidth', 2,'DisplayName',"state of the art")
+ylabel("operator error")
+xlabel("ROM dimension")
+set(gca, 'YScale', 'log')
+grid on
+legend("show")
+
+
+
+%% visualize singular values
+% figure; semilogy(diag(S),'o-')
+% hold on
+
+% save("data/data_burgers","O_errors","condsD");
+
+
+%% FOM solver running for one time step
+function x_1 = single_step(x_0,u_0,dt,f,mu)
+    x_1 = x_0 + dt*f(x_0,u_0,mu);
+end
+
