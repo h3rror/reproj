@@ -16,7 +16,8 @@ xs = linspace(Omega(1),Omega(2),N);
 dx = (Omega(2)-Omega(1))/N;
 
 dt = 1e-4;
-t_end = 1;
+% t_end = 1;
+t_end = 10*dt;
 nt = t_end/dt;
 
 is = [1];
@@ -67,14 +68,14 @@ U_b = zeros(Nu,nt+1,s);
 % X0s = 10*[-sin(pi/2*xs)' sin(3*pi/2*xs)']; % -> make intial condition satisfy BC
 x0 = -sin(pi/2*xs)' ; % -> make intial condition satisfy BC
 
+for k = 1:s
 t = 0;
 x = x0;
-u = U_b(:,1);
+u = U_b(:,1,s);
 
-X_b(:,1) = x0;
+X_b(:,1,k) = x0;
 % U_b(:,1) = u;
 
-for k = 1:s
     mu = mus(:,k);
     for i=1:nt
         x = single_step(x,0,dt,f,mu);
@@ -93,8 +94,21 @@ n = 6;
 Vn = V(:,1:n);
 % Vn = eye(n);
 
+%% opinf on ROM basis snapshot data
+% tX_b = Vn'*X_b;
+tX_b = pagemtimes(Vn',X_b);
+tX_b1 = tX_b(:,1:end-1,:);
+tX_b2 = tX_b(:,2:end,:);
+dot_tX_b = (tX_b1-tX_b2)/dt;
+
+[O,A_inds,B_inds,condD] = p_opinf(dot_tX_b,tX_b1,[],is,Thetas,true);
+sota.O = O;
+sota.condsD = condD;
+
 %% construct intrusive operators
 tA1s = precompute_rom_operator_param(F1X,Vn,1,qA);
+
+intr.O = tA1s(:,:);
 
 % Jn2 = power2kron(n,2);
 % tA2 = precompute_rom_operator(F2X,Vn,2)*Jn2;
@@ -136,8 +150,11 @@ B_errors = zeros(nn,1);
 A1_errors = zeros(nn,1);
 A2_errors = zeros(nn,1);
 
-O_errors = zeros(nn,1);
-condsD = zeros(nn,s);
+deco.O_errors = zeros(nn,1);
+deco.condsD = zeros(nn,s);
+
+mono.O_errors = zeros(nn,1);
+mono.condsD = zeros(nn,1);
 
 n_is__ = n_is(n,is);
 
@@ -150,13 +167,16 @@ for j = 1:nn
     ks = [1:Nu+n_is_(1)];
 
     tX0_ = tX0(1:n_,ks);
+    dot_tX_ = dot_tX(1:n_,ks,:);
     U0_ = U0(:,ks);
 
     hA1s_ = zeros(n_,n_,s);
     tA1s_ = zeros(n_,n_,s);
 
-    tX = repmat(full(tX0),1,1,s);
-    [O_mono,A_inds,B_inds,condD] = p_opinf(dot_tX,tX,U0_,is,Thetas,true);
+    tX = repmat(full(tX0_),1,1,s);
+    [O,A_inds,B_inds,condD] = p_opinf(dot_tX_,tX,U0_,is,Thetas,true);
+    mono.O = O;
+    mono.condsD(j) = condD;
 
     for k =1:s
         dot_tX_ = dot_tX(1:n_,ks,k);
@@ -174,7 +194,7 @@ for j = 1:nn
         tO_ = [tA1_];
         % O_errors(j,k) = norm(O-tO_,"fro")/norm(tO_,"fro");
 
-        condsD(j,k) = condD;
+        deco.condsD(j,k) = condD;
 
         hA1s_(:,:,k) = hA1_;
         tA1s_(:,:,k) = tA1_;
@@ -182,19 +202,31 @@ for j = 1:nn
 
     hA1s_ = hA1s_(:,:)*kron(inv(Theta_A),eye(n_))';
     % O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro")/norm(tO_,"fro");
-    O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro");
+    deco.O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro");
+    mono.O_errors(j) = norm(tA1s_(:,:)-mono.O,"fro");
 
 end
 
 figure
 hold on
-semilogy(ns,sum(O_errors,2)/s,'x-', 'LineWidth', 2,'DisplayName',"exactOpInf")
+semilogy(ns,sum(mono.O_errors,2)/qA,'x-', 'LineWidth', 2,'DisplayName',"monolithic")
+semilogy(ns,sum(deco.O_errors,2)/qA,'x-', 'LineWidth', 2,'DisplayName',"decoupled")
 ylabel("operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
 legend("show")
 
+figure
+hold on
+semilogy(ns,mono.condsD,'x-', 'LineWidth', 2,'DisplayName',"monolithic")
+semilogy(ns,sum(deco.condsD,2)/s,'x-', 'LineWidth', 2,'DisplayName',"decoupled")
+semilogy(n,sota.condsD, 'x-', 'LineWidth', 2,'DisplayName',"state of the art")
+ylabel("operator error")
+xlabel("ROM dimension")
+set(gca, 'YScale', 'log')
+grid on
+legend("show")
 
 
 

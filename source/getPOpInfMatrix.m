@@ -19,7 +19,7 @@ for k = 1:ni
     D_column = [];
     for j =1:s
         theta = Theta(j,:);
-        D_column = [D_column; kron(theta,uniquepower(tX(:,:,j),i))];
+        D_column = [D_column; kron(theta,uniquepower(tX(:,:,j)',i))];
     end
     D = [D, D_column];
     ind = size(D,2);
