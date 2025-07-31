@@ -1,0 +1,23 @@
+function ks = get_ops_indices(n,is,qs,k,is_select,n_select)
+
+if (nargin < 6)
+    n_select = n;
+end
+
+n_is_ = n_is(n,is);
+n_is_select = n_is(n_select,is);
+
+O_lengths = n_is_.*qs;
+O = zeros(n,sum(O_lengths));
+
+
+offset1 = [0 O_lengths(1:end-1)];
+offset2 = (k-1)*n_is_;
+ks = [];
+for j = 1:length(is)
+    % only consider the operators whose affine expansions have at least k
+    % elements
+    if qs(j)>=k && ismember(is(j),is_select)
+        ks = [ks offset1(j)+offset2(j)+(1:n_is_select(j))];
+    end
+end

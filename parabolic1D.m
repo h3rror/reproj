@@ -16,8 +16,8 @@ xs = linspace(Omega(1),Omega(2),N);
 dx = (Omega(2)-Omega(1))/N;
 
 dt = 1e-4;
-% t_end = 1;
-t_end = 10*dt;
+t_end = 1;
+% t_end = 10*dt;
 nt = t_end/dt;
 
 is = [1];
@@ -35,6 +35,7 @@ qA = d; % number of expansion terms
 s = d; % number of parameter samples
 % mu = (1:d)';
 mus = ones(s,s) + eye(s) + magic(s);
+mus = mus/max(mus,[],"all"); % normalize to avoid CFL problems
 theta_A = @(mu) mu;
 
 As = zeros(N,N,qA);
@@ -88,8 +89,9 @@ end
 
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b(:,:),'econ');
-% n = 10;
+% n = 20;
 n = 6;
+% n = 16;
 
 Vn = V(:,1:n);
 % Vn = eye(n);
@@ -99,7 +101,7 @@ Vn = V(:,1:n);
 tX_b = pagemtimes(Vn',X_b);
 tX_b1 = tX_b(:,1:end-1,:);
 tX_b2 = tX_b(:,2:end,:);
-dot_tX_b = (tX_b1-tX_b2)/dt;
+dot_tX_b = (tX_b2-tX_b1)/dt;
 
 [O,A_inds,B_inds,condD] = p_opinf(dot_tX_b,tX_b1,[],is,Thetas,true);
 sota.O = O;

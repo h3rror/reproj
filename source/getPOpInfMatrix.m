@@ -1,6 +1,6 @@
 function [D,A_inds,B_inds] = getPOpInfMatrix(tX,U,is,Thetas)
 
-warning("not handling inputs u yet")
+% warning("not handling inputs u yet")
 
 % D = U;
 D = [];
@@ -15,7 +15,7 @@ s = size(tX,3);
 ind_old = p;
 for k = 1:ni
     i = is(k);
-    Theta = Thetas{i};
+    Theta = Thetas{k};
     D_column = [];
     for j =1:s
         theta = Theta(j,:);

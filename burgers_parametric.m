@@ -5,8 +5,8 @@ rng(1); % for reproducibility
 
 addpath('source/');
 
-% N = 128;
-N = 16;
+N = 128;
+% N = 16;
 % N = 6;
 
 %% Burgers' model based on https://epubs.siam.org/doi/epdf/10.1137/19M1292448
@@ -16,8 +16,8 @@ xs = linspace(Omega(1),Omega(2),N);
 dx = (Omega(2)-Omega(1))/N;
 
 dt = 1e-4;
-% t_end = 1;
-t_end = 10*dt;
+t_end = 1;
+% t_end = 10*dt;
 nt = t_end/dt;
 
 is = [1 2];
@@ -54,6 +54,7 @@ qA = d; % number of expansion terms
 s = d; % number of parameter samples
 % mu = (1:d)';
 mus = ones(s,s) + eye(s) + magic(s);
+mus = mus/max(mus,[],"all"); % normalize to avoid CFL problems
 theta_A = @(mu) mu;
 
 As = zeros(N,N,qA);
@@ -117,7 +118,8 @@ end
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b(:,:),'econ');
 % n = 10;
-n = 6;
+% n = 6;
+n = 40;
 
 Vn = V(:,1:n);
 % Vn = eye(n);
@@ -138,7 +140,7 @@ tA1s = precompute_rom_operator_param(F1X,Vn,1,qA);
 Jn2 = power2kron(n,2);
 tA2 = precompute_rom_operator(F2X,Vn,2)*Jn2;
 
-intr.O = [tA1s(:,:) tA2];
+intr.On = [tA1s(:,:) tA2];
 
 %% generate rank-sufficient snapshot data
 tX0_pure = rank_suff_basis(n,is);
@@ -166,7 +168,8 @@ end
 dot_tX = (tX1-tX0)/dt1;
 
 %%
-ns = 1:n;
+% ns = 1:n;
+ns = 10:10:n;
 % ns = n;
 nn = numel(ns);
 
@@ -183,6 +186,7 @@ mono.condsD = zeros(nn,1);
 n_is__ = n_is(n,is);
 
 qs = [qA qH];
+qs_fill = s*ones(size(qs));
 
 for j = 1:nn
     n_ = ns(j);
@@ -206,37 +210,36 @@ for j = 1:nn
     mono.O = O;
     mono.condsD(j) = condD;
 
+    deco.Oc = O_empty(n_,is,qs_fill);
     for k =1:s
         dot_tX_ = dot_tX(1:n_,ks,k);
         % is_ = is(qs>=k);
         is_ = is;
 
-        [O,A_inds,B_inds,condD] = opinf(dot_tX_,tX0_,U0_,is_,true);
-        hA1_ = O(:,A_inds(1,1):A_inds(1,2));
-        hA2_ = O(:,A_inds(2,1):A_inds(2,2));
-        hB_ = O(:,B_inds(1,1):B_inds(1,2));
-
-        % tB_ = tB(1:n_,:);
-        tA1_ = tA1s(1:n_,1:n_is_(1),k);
-        tA2_ = tA2(1:n_,1:n_is_(2));
-
-        tO_ = [tA1_ tA2_];
-        % tO_ = [tA1_];
-        % O_errors(j,k) = norm(O-tO_,"fro")/norm(tO_,"fro");
+        % [O,A_inds,B_inds,condD] = opinf(dot_tX_,tX0_,U0_,is_,true);
+        % hA1_ = O(:,A_inds(1,1):A_inds(1,2));
+        % hA2_ = O(:,A_inds(2,1):A_inds(2,2));
+        % hB_ = O(:,B_inds(1,1):B_inds(1,2));
+        [O,~,~,condD] = opinf(dot_tX_,tX0_,U0_,is_,true);
+        deco.Oc = deco.Oc + O_compose(O,is,qs_fill,k);
 
         deco.condsD(j,k) = condD;
 
-        hA1s_(:,:,k) = hA1_;
-        hA2s_(:,:,k) = hA2_;
-        tA1s_(:,:,k) = tA1_;
-        tA2s_(:,:,k) = tA2_;
+        % hA1s_(:,:,k) = hA1_;
+        % hA2s_(:,:,k) = hA2_;
+        % tA1s_(:,:,k) = tA1_;
+        % tA2s_(:,:,k) = tA2_;
     end
 
-    hA1s_ = hA1s_(:,:)*kron(inv(Theta_A),eye(n_))';
-    hA2s_ = hA2s_(:,:)*kron(inv(Theta_H_fill),eye(n_))';
-    deco.O = [hA1s_ hA2s_];
-    intr.O = [tA1s_(:,:) tA2s_(:,:)];
+    deco.O = deco.Oc*blkdiag(kron(inv(Theta_A),eye(n_))', ...
+        kron(inv(Theta_H_fill),eye(n_is_(2)))');
+    deco.O = O_change(deco.O,is,qs_fill,qs);
+    % hA1s_ = hA1s_(:,:)*kron(inv(Theta_A),eye(n_))';
+    % hA2s_ = hA2s_(:,:)*kron(inv(Theta_H_fill),eye(n_))';
+    % deco.O = [hA1s_ hA2s_];
+    % intr.O = [tA1s_(:,:) tA2s_(:,:)];
     % O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro")/norm(tO_,"fro");
+    intr.O = O_change(intr.On,is,qs,qs,n_);
     deco.O_errors(j) = norm(intr.O-deco.O,"fro");
     mono.O_errors(j) = norm(intr.O-mono.O,"fro");
 
@@ -257,7 +260,7 @@ hold on
 semilogy(ns,mono.condsD,'x-', 'LineWidth', 2,'DisplayName',"monolithic")
 semilogy(ns,sum(deco.condsD,2)/s,'x-', 'LineWidth', 2,'DisplayName',"decoupled")
 semilogy(n,sota.condsD, 'x-', 'LineWidth', 2,'DisplayName',"state of the art")
-ylabel("operator error")
+ylabel("condition number")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
