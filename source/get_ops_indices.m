@@ -11,7 +11,7 @@ O_lengths = n_is_.*qs;
 O = zeros(n,sum(O_lengths));
 
 
-offset1 = [0 O_lengths(1:end-1)];
+offset1 = [0 cumsum(O_lengths(1:end-1))];
 offset2 = (k-1)*n_is_;
 ks = [];
 for j = 1:length(is)

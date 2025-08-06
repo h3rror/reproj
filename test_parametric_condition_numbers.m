@@ -5,12 +5,15 @@ rng(1); % for reproducibility
 
 addpath('source/');
 
-is = 2;
+is = [1 2 3];
+% is = 3;
 
 s = 5;
-n = 16;
+% n = 16;
+n = 3;
 
-qs = s;
+% qs = s;
+qs = s*ones(size(is));
 
 tX = rank_suff_basis(n,is);
 ptX = repmat(full(tX),1,1,s);
@@ -19,6 +22,9 @@ Theta = magic(s);
 cond(Theta)
 
 Thetas{1} = Theta;
+% Thetas{2} = Theta.^2;
+Thetas{2} = Theta;
+Thetas{3} = Theta;
 
 ns = 1:n;
 % ns = n;
@@ -28,10 +34,12 @@ nn = numel(ns);
 conds = zeros(nn,1);
 pconds = zeros(nn,1);
 
+qs0 = ones(size(is));
+
 for k = 1:nn
     n_ = ns(k);
 
-    tX_ = O_change(tX,is,1,1,n_);
+    tX_ = O_change(tX,is,qs0,qs0,n_);
 
     D = getOpInfMatrix(tX_,[],is);
     conds(k) = cond(full(D));
@@ -53,6 +61,7 @@ xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
 legend("show")
+title("polynomial degree "+is)
 
 
 
