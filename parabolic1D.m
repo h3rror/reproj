@@ -5,8 +5,8 @@ rng(1); % for reproducibility
 
 addpath('source/');
 
-% N = 128;
-N = 16;
+N = 128;
+% N = 16;
 % N = 6;
 
 %% 1D parabolic problem with piecewise constant diffusion coefficient as suggested by SHane McQuarrie
@@ -89,8 +89,8 @@ end
 
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b(:,:),'econ');
-% n = 20;
-n = 6;
+n = 20;
+% n = 6;
 % n = 16;
 
 Vn = V(:,1:n);

@@ -5,12 +5,15 @@ rng(1); % for reproducibility
 
 addpath('source/');
 
-is = [1 2 3];
+% is = [1 2 3];
+is = [1 2];
 % is = 3;
 
 s = 5;
 % n = 16;
-n = 3;
+% n = 50;
+n = 100;
+% n = 3;
 
 % qs = s;
 qs = s*ones(size(is));
@@ -22,11 +25,13 @@ Theta = magic(s);
 cond(Theta)
 
 Thetas{1} = Theta;
-% Thetas{2} = Theta.^2;
-Thetas{2} = Theta;
-Thetas{3} = Theta;
+Thetas{2} = Theta.^2;
+% Thetas{3} = Theta.^3;
+% Thetas{2} = Theta;
+% Thetas{3} = Theta;
 
-ns = 1:n;
+% ns = 1:n;
+ns = 10:10:n;
 % ns = n;
 
 nn = numel(ns);
