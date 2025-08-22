@@ -50,7 +50,7 @@ D1 = D;
 F2_exact = @(x1,x2,mu) D1*(nu(x1,mu).*(D1*x2));
 % Q: are boundary conditions in D1 correct like this?
 
-%% simple setting: fixed mu
+%% 1) simple setting: fixed mu
 F2 = @(x1,x2) F2_exact(x1,x2,mu0);
 F2X = @(X) F2(X(:,1),X(:,2));  % enable storing variables in one matrix
 
@@ -59,6 +59,17 @@ mus = mu0;
 s= 1;
 qH = 1;
 Theta_H = 1;
+Thetas{1} = Theta_H;
+
+%% continue here !!! 22-08-2025
+
+%% 2) general setting: arbitrary qH
+
+qH = 3;
+s = qH;
+mus = (0:s-1)+mu0
+theta_H = @(mu) (mu-mu0).^((0:s-1)');
+Theta_H = theta_H(mus)';
 Thetas{1} = Theta_H;
 
 %%

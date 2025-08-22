@@ -35,7 +35,7 @@ t_end = 1;
 % t_end = 10*dt;
 nt = t_end/dt;
 
-is = [1];
+is = [2];
 I = speye(N);
 
 %% 
@@ -50,7 +50,7 @@ D1 = D;
 F2_exact = @(x1,x2,mu) D1*(nu(x1,mu).*(D1*x2));
 % Q: are boundary conditions in D1 correct like this?
 
-%% simple setting: fixed mu
+%% 1) simple setting: fixed mu
 F2 = @(x1,x2) F2_exact(x1,x2,mu0);
 F2X = @(X) F2(X(:,1),X(:,2));  % enable storing variables in one matrix
 
@@ -58,7 +58,17 @@ F2X = @(X) F2(X(:,1),X(:,2));  % enable storing variables in one matrix
 mus = mu0;
 s= 1;
 qH = 1;
-Thetas{1} = 1;
+Theta_H = 1;
+Thetas{1} = Theta_H;
+
+%% 2) general setting: arbitrary qH
+
+qH = 3;
+s = qH;
+mus = (0:s-1)+mu0
+theta_H = @(mu) mu.^((0:s-1)')
+Theta_H = theta_H(mus)'
+Thetas{1} = Theta_H;
 
 %%
 
@@ -121,7 +131,7 @@ sota.condsD = condD;
 % Jn2 = power2kron(n,2);
 % tA2 = precompute_rom_operator(F2X,Vn,2)*Jn2;
 
-tA2s = precompute_rom_operator_param(F2X,Vn,2,qH);
+tA2s = precompute_rom_operator_param(@(X,theta) F2X(X),Vn,2,qH);
 
 intr.O = tA2s(:,:);
 
@@ -182,8 +192,8 @@ for j = 1:nn
     dot_tX_ = dot_tX(1:n_,ks,:);
     U0_ = U0(:,ks);
 
-    hA1s_ = zeros(n_,n_,s);
-    tA1s_ = zeros(n_,n_,s);
+    hA2s_ = zeros(n_,n_is_,s);
+    tA2s_ = zeros(n_,n_is_,s);
 
     tX = repmat(full(tX0_),1,1,s);
     [O,A_inds,B_inds,condD] = p_opinf(dot_tX_,tX,U0_,is,Thetas,true);
@@ -194,35 +204,37 @@ for j = 1:nn
         dot_tX_ = dot_tX(1:n_,ks,k);
 
         [O,A_inds,B_inds,condD] = opinf(dot_tX_,tX0_,U0_,is,true);
-        hA1_ = O(:,A_inds(1,1):A_inds(1,2));
+        % hA1_ = O(:,A_inds(1,1):A_inds(1,2));
+        hA2_ = O(:,A_inds(1,1):A_inds(1,2));
         % hA2_ = O(:,A_inds(2,1):A_inds(2,2));
         hB_ = O(:,B_inds(1,1):B_inds(1,2));
 
         % tB_ = tB(1:n_,:);
-        tA1_ = tA1s(1:n_,1:n_is_(1),k);
+        % tA1_ = tA1s(1:n_,1:n_is_(1),k);
+        tA2_ = tA2s(1:n_,1:n_is_(1),k);
         % tA2_ = tA2(1:n_,1:n_is_(2));
 
         % tO_ = [tA1_ tA2_];
-        tO_ = [tA1_];
+        tO_ = [tA2_];
         % O_errors(j,k) = norm(O-tO_,"fro")/norm(tO_,"fro");
 
         deco.condsD(j,k) = condD;
 
-        hA1s_(:,:,k) = hA1_;
-        tA1s_(:,:,k) = tA1_;
+        hA2s_(:,:,k) = hA2_;
+        tA2s_(:,:,k) = tA2_;
     end
 
-    hA1s_ = hA1s_(:,:)*kron(inv(Theta_A),eye(n_))';
+    hA2s_ = hA2s_(:,:)*kron(inv(Theta_H),eye(n_is_))';
     % O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro")/norm(tO_,"fro");
-    deco.O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro");
-    mono.O_errors(j) = norm(tA1s_(:,:)-mono.O,"fro");
+    deco.O_errors(j) = norm(tA2s_(:,:)-hA2s_,"fro");
+    mono.O_errors(j) = norm(tA2s_(:,:)-mono.O,"fro");
 
 end
 
 figure
 hold on
-semilogy(ns,sum(mono.O_errors,2)/qA,'x-', 'LineWidth', 2,'DisplayName',"monolithic")
-semilogy(ns,sum(deco.O_errors,2)/qA,'x-', 'LineWidth', 2,'DisplayName',"decoupled")
+semilogy(ns,sum(mono.O_errors,2)/qH,'x-', 'LineWidth', 2,'DisplayName',"monolithic")
+semilogy(ns,sum(deco.O_errors,2)/qH,'x-', 'LineWidth', 2,'DisplayName',"decoupled")
 ylabel("operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
