@@ -5,69 +5,76 @@ rng(1); % for reproducibility
 
 addpath('source/');
 
-N = 128;
-% N = 16;
+% N = 128;
+N = 16;
 % N = 6;
 
-%% 1D parabolic problem with piecewise constant diffusion coefficient as suggested by Shane McQuarrie
+%% 1D heat equation with temperature-dependent and parameter-dependent (Gaussian) conductivity
 
 Omega = [-1 1];
-xs = linspace(Omega(1),Omega(2),N);
+xis = linspace(Omega(1),Omega(2),N)';
 dx = (Omega(2)-Omega(1))/N;
 
+k0 = @(mu) exp(-(xis-mu).^2);
+nu = @(x,mu) k0(mu).*x; % thermal conductivity
+
+x0 = -sin(pi/2*xis) + 1; % -> make intial condition satisfy BC
+% x0 = ones(size(xis)) ; % -> make intial condition satisfy BC
+mu0 = .3;
+
+figure
+hold on
+plot(xis,x0, "DisplayName","x_0")
+plot(xis,k0(mu0), "DisplayName","k_0(\mu_0)")
+plot(xis,nu(x0,mu0), "DisplayName","\nu(x_0,\mu_0)")
+legend('show')
+
+%%
 dt = 1e-4;
 t_end = 1;
 % t_end = 10*dt;
 nt = t_end/dt;
 
-is = [1];
+is = [2];
 I = speye(N);
 
-%% negative semi-definite diffusion operator
-D = -2*diag(ones(N,1)) + diag(ones(N-1,1),1) + diag(ones(N-1,1),-1);
-D(N,1) = 1;
-D(1,N) = 1;
-D = D/dx^2;
-% D = eye(N);
+%% 
+D = spdiags([-ones(N,1) ones(N,1)], [-1 1],N,N); % first-order central finite difference
+D(1,1) = -1; D(end,end) = 1; % homogeneous Neumann BC
+D = D/(2*dx);
+D1 = D;
 
-d = 4; % number of parameters
-qA = d; % number of expansion terms
-s = d; % number of parameter samples
-% mu = (1:d)';
-mus = ones(s,s) + eye(s) + magic(s);
-mus = mus/max(mus,[],"all"); % normalize to avoid CFL problems
-theta_A = @(mu) mu;
+% F1 = @(x,theta) 0;
+% F1_exact = @(x) D1*(nu(x,k0(mu)).*(D1*x));
 
-As = zeros(N,N,qA);
-for i =1:qA
-    mu_i = one_hot(i,d);
-    nu_i = diag(kron(mu_i,ones(N/d,1)));
-    As(:,:,i) = nu_i*D;
-end
+F2_exact = @(x1,x2,mu) D1*(nu(x1,mu).*(D1*x2));
+% Q: are boundary conditions in D1 correct like this?
 
-% Thetas = zeros(s,qA);
-% for i=1:s
-%     mu_i = mus(:,i);
-%     Thetas(i,:) = theta_A(mu_i)'; 
-% end
-Theta_A = theta_A(mus)';
-Thetas{1} = Theta_A;
+%% simple setting: fixed mu
+F2 = @(x1,x2) F2_exact(x1,x2,mu0);
+F2X = @(X) F2(X(:,1),X(:,2));  % enable storing variables in one matrix
 
-F1 = @(x,theta) affine_op(As,theta)*x;
+
+mus = mu0;
+s= 1;
+qH = 1;
+Theta_H = 1;
+Thetas{1} = Theta_H;
 
 %%
-F1X = @(X,theta) F1(X(:,1),theta);
 
 Nu = 0; % input signal dimension
 
-f = @(x,u,mu) F1(x,theta_A(mu));
+% f = @(x,u,mu) F1(x,theta_A(mu));
 
+% f = @(x,u,mu) F2(x,x);
+f = @(x,u,mu) F2(x,x);
 
 %% generate ROM basis construction data
 X_b = zeros(N,nt+1,s);
 U_b = zeros(Nu,nt+1,s); 
 % X0s = 10*[-sin(pi/2*xs)' sin(3*pi/2*xs)']; % -> make intial condition satisfy BC
-x0 = -sin(pi/2*xs)' ; % -> make intial condition satisfy BC
+% x0 = -sin(pi/2*xis); % -> make intial condition satisfy BC
 
 for k = 1:s
 t = 0;
@@ -89,8 +96,8 @@ end
 
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b(:,:),'econ');
-n = 20;
-% n = 6;
+% n = 20;
+n = 6;
 % n = 16;
 
 Vn = V(:,1:n);
@@ -108,12 +115,16 @@ sota.O = O;
 sota.condsD = condD;
 
 %% construct intrusive operators
-tA1s = precompute_rom_operator_param(F1X,Vn,1,qA);
-
-intr.O = tA1s(:,:);
+% tA1s = precompute_rom_operator_param(F1X,Vn,1,qA);
+% 
+% intr.O = tA1s(:,:);
 
 % Jn2 = power2kron(n,2);
 % tA2 = precompute_rom_operator(F2X,Vn,2)*Jn2;
+
+tA2s = precompute_rom_operator_param(@(X,theta) F2X(X),Vn,2,qH);
+
+intr.O = tA2s(:,:);
 
 % tA2_2= Vn'*C*kron(Vn,Vn)*Jn2;
 % norm(tA2-tA2_2)
@@ -172,8 +183,8 @@ for j = 1:nn
     dot_tX_ = dot_tX(1:n_,ks,:);
     U0_ = U0(:,ks);
 
-    hA1s_ = zeros(n_,n_,s);
-    tA1s_ = zeros(n_,n_,s);
+    hA2s_ = zeros(n_,n_is_,s);
+    tA2s_ = zeros(n_,n_is_,s);
 
     tX = repmat(full(tX0_),1,1,s);
     [O,A_inds,B_inds,condD] = p_opinf(dot_tX_,tX,U0_,is,Thetas,true);
@@ -184,35 +195,37 @@ for j = 1:nn
         dot_tX_ = dot_tX(1:n_,ks,k);
 
         [O,A_inds,B_inds,condD] = opinf(dot_tX_,tX0_,U0_,is,true);
-        hA1_ = O(:,A_inds(1,1):A_inds(1,2));
+        % hA1_ = O(:,A_inds(1,1):A_inds(1,2));
+        hA2_ = O(:,A_inds(1,1):A_inds(1,2));
         % hA2_ = O(:,A_inds(2,1):A_inds(2,2));
         hB_ = O(:,B_inds(1,1):B_inds(1,2));
 
         % tB_ = tB(1:n_,:);
-        tA1_ = tA1s(1:n_,1:n_is_(1),k);
+        % tA1_ = tA1s(1:n_,1:n_is_(1),k);
+        tA2_ = tA2s(1:n_,1:n_is_(1),k);
         % tA2_ = tA2(1:n_,1:n_is_(2));
 
         % tO_ = [tA1_ tA2_];
-        tO_ = [tA1_];
+        tO_ = [tA2_];
         % O_errors(j,k) = norm(O-tO_,"fro")/norm(tO_,"fro");
 
         deco.condsD(j,k) = condD;
 
-        hA1s_(:,:,k) = hA1_;
-        tA1s_(:,:,k) = tA1_;
+        hA2s_(:,:,k) = hA2_;
+        tA2s_(:,:,k) = tA2_;
     end
 
-    hA1s_ = hA1s_(:,:)*kron(inv(Theta_A),eye(n_))';
+    hA2s_ = hA2s_(:,:)*kron(inv(Theta_H),eye(n_is_))';
     % O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro")/norm(tO_,"fro");
-    deco.O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro");
-    mono.O_errors(j) = norm(tA1s_(:,:)-mono.O,"fro");
+    deco.O_errors(j) = norm(tA2s_(:,:)-hA2s_,"fro");
+    mono.O_errors(j) = norm(tA2s_(:,:)-mono.O,"fro");
 
 end
 
 figure
 hold on
-semilogy(ns,sum(mono.O_errors,2)/qA,'x-', 'LineWidth', 2,'DisplayName',"monolithic")
-semilogy(ns,sum(deco.O_errors,2)/qA,'x-', 'LineWidth', 2,'DisplayName',"decoupled")
+semilogy(ns,sum(mono.O_errors,2)/qH,'x-', 'LineWidth', 2,'DisplayName',"monolithic")
+semilogy(ns,sum(deco.O_errors,2)/qH,'x-', 'LineWidth', 2,'DisplayName',"decoupled")
 ylabel("operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
