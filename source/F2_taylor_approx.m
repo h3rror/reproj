@@ -1,9 +1,9 @@
-function [F2,kps,k_sum] = F2_taylor_approx(k0_,qH,F2_k,xis,mu0)
+function [F2,kps,k_sum] = F2_taylor_approx(k0_,mu_,qH,F2_k,xis,mu0)
 
 kps = zeros(size(xis,1),qH);
 
 for p=1:qH
-    kp_ = diff(k0_,p-1)/factorial(p-1);
+    kp_ = diff(k0_,mu_,p-1)/factorial(p-1);
     kps(:,p) = eval(kp_(xis,mu0));
 end
 
