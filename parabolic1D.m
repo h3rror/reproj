@@ -224,7 +224,7 @@ hold on
 semilogy(ns,mono.condsD,'x-', 'LineWidth', 2,'DisplayName',"monolithic")
 semilogy(ns,sum(deco.condsD,2)/s,'x-', 'LineWidth', 2,'DisplayName',"decoupled")
 semilogy(n,sota.condsD, 'x-', 'LineWidth', 2,'DisplayName',"state of the art")
-ylabel("operator error")
+ylabel("condition number")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on

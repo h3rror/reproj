@@ -15,8 +15,12 @@ Omega = [-1 1];
 xis = linspace(Omega(1),Omega(2),N)';
 dx = (Omega(2)-Omega(1))/N;
 
-k0 = @(mu) exp(-(xis-mu).^2);
-nu = @(x,mu) k0(mu).*x; % thermal conductivity
+% k0 = @(xis,mu) exp(-(xis-mu).^2);
+% syms k0(xis_,mu);
+syms xis_ mu_;
+k0_(xis_,mu_) = exp(-(xis_-mu_).^2);
+k0 = matlabFunction(k0_);
+nu = @(x,mu) k0(xis,mu).*x; % thermal conductivity 
 
 x0 = -sin(pi/2*xis) + 1; % -> make intial condition satisfy BC
 % x0 = ones(size(xis)) ; % -> make intial condition satisfy BC
@@ -25,7 +29,7 @@ mu0 = .3;
 figure
 hold on
 plot(xis,x0, "DisplayName","x_0")
-plot(xis,k0(mu0), "DisplayName","k_0(\mu_0)")
+plot(xis,k0(xis,mu0), "DisplayName","k_0(\mu_0)")
 plot(xis,nu(x0,mu0), "DisplayName","\nu(x_0,\mu_0)")
 legend('show')
 
@@ -50,27 +54,38 @@ D1 = D;
 F2_exact = @(x1,x2,mu) D1*(nu(x1,mu).*(D1*x2));
 % Q: are boundary conditions in D1 correct like this?
 
+% definition for k0 approximations
+F2_k = @(x1,x2,k,mu) D1*((k(xis,mu).*x1).*(D1*x2));
+% F2X_k = @(X,k) F2_k(X(1,:),X(2,:),k,mu0);
+
 %% 1) simple setting: fixed mu
-F2 = @(x1,x2) F2_exact(x1,x2,mu0);
-F2X = @(X) F2(X(:,1),X(:,2));  % enable storing variables in one matrix
-
-
-mus = mu0;
-s= 1;
-qH = 1;
-Theta_H = 1;
-Thetas{1} = Theta_H;
-
-%% continue here !!! 22-08-2025
+% F2 = @(x1,x2,theta) F2_exact(x1,x2,mu0);
+% F2X = @(X,theta) F2(X(:,1),X(:,2),theta);  % enable storing variables in one matrix
+% f = @(x,u,mu) F2(x,x);
+% 
+% mus = mu0;
+% s= 1;
+% qH = 1;
+% Theta_H = 1;
+% Thetas{1} = Theta_H;
 
 %% 2) general setting: arbitrary qH
 
-qH = 3;
+k1_(xis_,mu_) = diff(k0,xis_);
+k1 = matlabFunction(k1_);
+
+qH = 2;
 s = qH;
-mus = (0:s-1)+mu0
+mus = (0:s-1)+mu0;
 theta_H = @(mu) (mu-mu0).^((0:s-1)');
 Theta_H = theta_H(mus)';
 Thetas{1} = Theta_H;
+
+F2 = @(x1,x2,theta) sum(theta'.*[F2_k(x1,x2,k0,mu0) F2_k(x1,x2,k1,mu0)],2);
+F2X = @(X,theta) F2(X(:,1),X(:,2),theta); % enable storing variables in one matrix
+
+% f = @(x,u,mu) F2_exact(x,x,mu);
+f = @(x,u,mu) F2(x,x,theta_H(mu));
 
 %%
 
@@ -79,7 +94,6 @@ Nu = 0; % input signal dimension
 % f = @(x,u,mu) F1(x,theta_A(mu));
 
 % f = @(x,u,mu) F2(x,x);
-f = @(x,u,mu) F2(x,x);
 
 %% generate ROM basis construction data
 X_b = zeros(N,nt+1,s);
@@ -133,7 +147,8 @@ sota.condsD = condD;
 % Jn2 = power2kron(n,2);
 % tA2 = precompute_rom_operator(F2X,Vn,2)*Jn2;
 
-tA2s = precompute_rom_operator_param(@(X,theta) F2X(X),Vn,2,qH);
+% tA2s = precompute_rom_operator_param(@(X,theta) F2X(X),Vn,2,qH);
+tA2s = precompute_rom_operator_param(@(X,theta) F2X(X,theta),Vn,2,qH);
 
 intr.O = tA2s(:,:);
 
@@ -248,7 +263,7 @@ hold on
 semilogy(ns,mono.condsD,'x-', 'LineWidth', 2,'DisplayName',"monolithic")
 semilogy(ns,sum(deco.condsD,2)/s,'x-', 'LineWidth', 2,'DisplayName',"decoupled")
 semilogy(n,sota.condsD, 'x-', 'LineWidth', 2,'DisplayName',"state of the art")
-ylabel("operator error")
+ylabel("condition number")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
