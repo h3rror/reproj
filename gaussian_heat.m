@@ -55,7 +55,8 @@ F2_exact = @(x1,x2,mu) D1*(nu(x1,mu).*(D1*x2));
 % Q: are boundary conditions in D1 correct like this?
 
 % definition for k0 approximations
-F2_k = @(x1,x2,k,mu) D1*((k(xis,mu).*x1).*(D1*x2));
+% F2_k = @(x1,x2,k,mu) D1*((k(xis,mu).*x1).*(D1*x2));
+F2_k = @(x1,x2,k) D1*((k.*x1).*(D1*x2));
 % F2X_k = @(X,k) F2_k(X(1,:),X(2,:),k,mu0);
 
 %% 1) simple setting: fixed mu
@@ -71,8 +72,9 @@ F2_k = @(x1,x2,k,mu) D1*((k(xis,mu).*x1).*(D1*x2));
 
 %% 2) general setting: arbitrary qH
 
-k1_(xis_,mu_) = diff(k0,xis_);
-k1 = matlabFunction(k1_);
+k1_ = diff(k0_,xis_);
+% k1 = matlabFunction(k1_);
+k1 = eval(k1_(xis,mu0));
 
 qH = 2;
 s = qH;
@@ -81,8 +83,11 @@ theta_H = @(mu) (mu-mu0).^((0:s-1)');
 Theta_H = theta_H(mus)';
 Thetas{1} = Theta_H;
 
-F2 = @(x1,x2,theta) sum(theta'.*[F2_k(x1,x2,k0,mu0) F2_k(x1,x2,k1,mu0)],2);
+% F2 = @(x1,x2,theta) sum(theta'.*[F2_k(x1,x2,k0(xis,mu0)) F2_k(x1,x2,k1)],2);
+[F2,kps] = F2_taylor_approx(k0_,qH,F2_k,xis,mu0);
 F2X = @(X,theta) F2(X(:,1),X(:,2),theta); % enable storing variables in one matrix
+
+
 
 % f = @(x,u,mu) F2_exact(x,x,mu);
 f = @(x,u,mu) F2(x,x,theta_H(mu));
