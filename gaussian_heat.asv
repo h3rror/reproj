@@ -18,7 +18,7 @@ dx = (Omega(2)-Omega(1))/N;
 % k0 = @(xis,mu) exp(-(xis-mu).^2);
 % syms k0(xis_,mu);
 syms xis_ mu_;
-k0_(xis_,mu_) = exp(-(xis_-mu_).^2);
+k0_(xis_,mu_) = exp(-.5*(xis_-mu_).^2);
 k0 = matlabFunction(k0_);
 nu = @(x,mu) k0(xis,mu).*x; % thermal conductivity 
 
@@ -76,7 +76,7 @@ k1_ = diff(k0_,xis_);
 % k1 = matlabFunction(k1_);
 k1 = eval(k1_(xis,mu0));
 
-qH = 10;
+qH = 3;
 s = qH;
 mus = (0:s-1)+mu0;
 theta_H = @(mu) (mu'-mu0).^(0:s-1);
@@ -87,24 +87,29 @@ Thetas{1} = Theta_H;
 [F2,kps,k_sum] = F2_taylor_approx(k0_,mu_,qH,F2_k,xis,mu0);
 F2X = @(X,theta) F2(X(:,1),X(:,2),theta); % enable storing variables in one matrix
 
-figure
-hold on
-mus2 = xis;
-plot(mus2,k0(1,mus2), "displayname", "exact")
-k1_ = taylor(k0_,mu_,ExpansionPoint = mu0, Order=1);
-plot(mus2,eval(k1_(1,mus2)), "displayname", "Taylor 1")
-k2_ = taylor(k0_,mu_,ExpansionPoint = mu0, Order=2);
-plot(mus2,eval(k2_(1,mus2)), "displayname", "Taylor 2")
-k3_ = taylor(k0_,mu_,ExpansionPoint = mu0, Order=3);
-plot(mus2,eval(k3_(1,mus2)), "displayname", "Taylor 3")
-
-legend("show")
-title("\xi=")
+% figure
+% hold on
+% mus2 = xis;
+% plot(mus2,k0(1,mus2), "displayname", "exact")
+% k1_ = taylor(k0_,mu_,ExpansionPoint = mu0, Order=1);
+% plot(mus2,eval(k1_(1,mus2)), "displayname", "Taylor 1")
+% k2_ = taylor(k0_,mu_,ExpansionPoint = mu0, Order=2);
+% plot(mus2,eval(k2_(1,mus2)), "displayname", "Taylor 2")
+% k3_ = taylor(k0_,mu_,ExpansionPoint = mu0, Order=3);
+% plot(mus2,eval(k3_(1,mus2)), "displayname", "Taylor 3")
+% 
+% legend("show")
+% title("\xi=1")
+% xlabel("\mu")
+% ylabel("k_0")
 
 % plot(mus2,k_sum(theta_H(mus2')'))
 
 % f = @(x,u,mu) F2_exact(x,x,mu);
-f = @(x,u,mu) F2(x,x,theta_H(mu));
+% f = @(x,u,mu) F2(x,x,theta_H(mu));
+k_taylor_ = taylor(k0_,mu_,ExpansionPoint = mu0, Order = qH);
+k_taylor = @(xis,mu) matlabFunction((k_taylor_(xis,mu)));
+f = @(x,u,mu) F2_k(x,x,k_taylor(xis,mu));
 
 %%
 

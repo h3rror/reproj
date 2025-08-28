@@ -7,7 +7,8 @@ for p=1:qH
     kps(:,p) = eval(kp_(xis,mu0));
 end
 
-k_sum = @(theta) sum(theta'.*kps,2);
+% k_sum = @(theta) sum(theta'.*kps,2);
+k_sum = @(theta) kps*theta(:);
 
 %     function val = F2_(x1,x2,theta)
 %         val = 0;
