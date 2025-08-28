@@ -107,11 +107,11 @@ F2X = @(X,theta) F2(X(:,1),X(:,2),theta); % enable storing variables in one matr
 % plot(mus2,k_sum(theta_H(mus2')'))
 
 % f = @(x,u,mu) F2_exact(x,x,mu);
-% f = @(x,u,mu) F2(x,x,theta_H(mu));
-k_taylor_ = taylor(k0_,mu_,ExpansionPoint = mu0, Order = qH);
-% k_taylor = @(xis,mu) matlabFunction((k_taylor_(xis,mu)));
-k_taylor = matlabFunction(k_taylor_);
-f = @(x,u,mu) F2_k(x,x,k_taylor(xis,mu));
+f = @(x,u,mu) F2(x,x,theta_H(mu));
+% k_taylor_ = taylor(k0_,mu_,ExpansionPoint = mu0, Order = qH);
+% % k_taylor = @(xis,mu) matlabFunction((k_taylor_(xis,mu)));
+% k_taylor = matlabFunction(k_taylor_);
+% f = @(x,u,mu) F2_k(x,x,k_taylor(xis,mu));
 
 %%
 
