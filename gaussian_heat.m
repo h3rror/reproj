@@ -314,6 +314,14 @@ for j = 1:nn
     deco.Omu0errors(j) = norm(affine_op(deco.Os,theta_H(mu0))-Omu0_)/norm(Omu0);
 
     %% compute ROM state error
+    Xmu0 = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu0));
+    Xmu1 = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu0));
+
+    In_2 = kron2power(n_,2);
+    ROMmu0_step(x) = x+ dt*Omu0_*In_2*kron(x,x);
+    ROMmu1_step(x) = x+ dt*Omu1_*In_2*kron(x,x);
+
+    Xmu0 = simulate(x0,dt,nt,ROMmu0_step);
 
 end
 
