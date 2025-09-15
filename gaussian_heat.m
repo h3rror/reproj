@@ -52,6 +52,8 @@ D1 = D;
 % F1_exact = @(x) D1*(nu(x,k0(mu)).*(D1*x));
 
 F2_exact = @(x1,x2,mu) D1*(nu(x1,mu).*(D1*x2));
+F2X_exact = @(X,mu) F2_exact(X(:,1),X(:,2),mu); % enable storing variables in one matrix
+
 % Q: are boundary conditions in D1 correct like this?
 
 % definition for k0 approximations
@@ -76,7 +78,7 @@ k1_ = diff(k0_,xis_);
 % k1 = matlabFunction(k1_);
 k1 = eval(k1_(xis,mu0));
 
-qH = 5;
+qH = 2;
 s = qH;
 % mus = (0:s-1)+mu0;
 mus = linspace(-1,1,s);
@@ -87,6 +89,24 @@ Thetas{1} = Theta_H;
 % F2 = @(x1,x2,theta) sum(theta'.*[F2_k(x1,x2,k0(xis,mu0)) F2_k(x1,x2,k1)],2);
 [F2,kps,k_sum] = F2_taylor_approx(k0_,mu_,qH,F2_k,xis,mu0);
 F2X = @(X,theta) F2(X(:,1),X(:,2),theta); % enable storing variables in one matrix
+
+%% some plots
+figure
+hold on
+plot(xis,F2_exact(x0,x0,mu0), "DisplayName","exact")
+plot(xis,F2X([x0,x0],theta_H(mu0)),'--',"DisplayName","Taylor approx "+qH)
+title("RHS evaluated at x_0 and  \mu_0")
+legend("show")
+
+mu1 = -1;
+figure
+hold on
+plot(xis,F2_exact(x0,x0,mu1), "DisplayName","exact")
+plot(xis,F2X([x0,x0],theta_H(mu1)),'--',"DisplayName","Taylor approx "+qH)
+title("RHS evaluated at x_0 and \mu="+ num2str(mu1))
+legend("show")
+
+%%
 
 % figure
 % hold on
@@ -128,28 +148,33 @@ U_b = zeros(Nu,nt+1,s);
 % x0 = -sin(pi/2*xis); % -> make intial condition satisfy BC
 
 for k = 1:s
-t = 0;
-x = x0;
-u = U_b(:,1,s);
-
-X_b(:,1,k) = x0;
-% U_b(:,1) = u;
-
     mu = mus(:,k);
-    for i=1:nt
-        x = single_step(x,0,dt,f,mu);
-        t = t + dt;
-        u = U_b(:,i,k);
-
-        X_b(:,i+1,k) = x;
-    end
+    X_b(:,:,k) = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu));
 end
+% for k = 1:s
+% t = 0;
+% x = x0;
+% u = U_b(:,1,s);
+% 
+% X_b(:,1,k) = x0;
+% % U_b(:,1) = u;
+% 
+% mu = mus(:,k);
+% for i=1:nt
+%     x = single_step(x,0,dt,f,mu);
+%     t = t + dt;
+%     u = U_b(:,i,k);
+% 
+%     X_b(:,i+1,k) = x;
+% end
+% end
 
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b(:,:),'econ');
 % n = 20;
-n = 6;
+% n = 6;
 % n = 16;
+n = N;
 
 Vn = V(:,1:n);
 % Vn = eye(n);
@@ -177,6 +202,11 @@ sota.condsD = condD;
 tA2s = precompute_rom_operator_param(@(X,theta) F2X(X,theta),Vn,2,qH);
 
 intr.O = tA2s(:,:);
+intr.Os = tA2s;
+
+Jn2 = power2kron(n,2);
+Omu0 = precompute_rom_operator(@(X) F2X_exact(X,mu0),Vn,2)*Jn2;
+Omu1 = precompute_rom_operator(@(X) F2X_exact(X,mu1),Vn,2)*Jn2;
 
 % tA2_2= Vn'*C*kron(Vn,Vn)*Jn2;
 % norm(tA2-tA2_2)
@@ -220,6 +250,10 @@ deco.condsD = zeros(nn,s);
 
 mono.O_errors = zeros(nn,1);
 mono.condsD = zeros(nn,1);
+
+deco.Omu0errors = zeros(nn,1);
+deco.Omu1errors = zeros(nn,1);
+
 
 n_is__ = n_is(n,is);
 
@@ -267,10 +301,19 @@ for j = 1:nn
         tA2s_(:,:,k) = tA2_;
     end
 
-    hA2s_ = hA2s_(:,:)*kron(inv(Theta_H),eye(n_is_))';
+    deco.O = hA2s_(:,:)*kron(inv(Theta_H),eye(n_is_))';
     % O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro")/norm(tO_,"fro");
-    deco.O_errors(j) = norm(tA2s_(:,:)-hA2s_,"fro");
+    deco.O_errors(j) = norm(tA2s_(:,:)-deco.O,"fro");
     mono.O_errors(j) = norm(tA2s_(:,:)-mono.O,"fro");
+
+    deco.Os = reshape(deco.O,[n_, n_is_(1), s]);
+    
+    Omu1_ = Omu1(1:n_,1:n_is_(1));
+    deco.Omu1errors(j) = norm(affine_op(deco.Os,theta_H(mu1))-Omu1_)/norm(Omu1);
+    Omu0_ = Omu0(1:n_,1:n_is_(1));
+    deco.Omu0errors(j) = norm(affine_op(deco.Os,theta_H(mu0))-Omu0_)/norm(Omu0);
+
+    %% compute ROM state error
 
 end
 
@@ -295,6 +338,16 @@ set(gca, 'YScale', 'log')
 grid on
 legend("show")
 
+figure
+hold on
+semilogy(ns,deco.Omu0errors,'DisplayName',"\mu_0")
+semilogy(ns,deco.Omu1errors,'DisplayName',"\mu_1")
+ylabel("operator error")
+xlabel("ROM dimension")
+set(gca, 'YScale', 'log')
+grid on
+legend("show")
+title("q_H = "+num2str(qH))
 
 
 %% visualize singular values
