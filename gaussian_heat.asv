@@ -338,30 +338,21 @@ for j = 1:nn
     Xmu1 = simulate(Vn_'*x0,dt,nt,ROMmu1_step);
 
     ROMerror_mu0 = vecwise_2norm(Xmu0_FOM - Vn_*Xmu0);
-    ROMerror_mu1 = vecwise_2norm(Xmu1_FOM - Vn_*Xmu1);
+    ROMerror_mu0 = vecwise_2norm(Xmu1_FOM - Vn_*Xmu1);
 
-    ts = 0:dt:t_end;
+    ts = 
     figure(7)
     semilogy(ts,ROMerror_mu0,'DisplayName',"n=" +num2str(n_))
     figure(8)
-    semilogy(ts,ROMerror_mu1,'DisplayName',"n=" +num2str(n_))
+    semilogy(ts,ROMerror_mu0,'DisplayName',"n=" +num2str(n_))
 end
 
 figure(7)
 ylabel("ROM state error")
-xlabel("time")
+xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
 legend("show")
-title("\mu_0")
-
-figure(8)
-ylabel("ROM state error")
-xlabel("time")
-set(gca, 'YScale', 'log')
-grid on
-legend("show")
-title("\mu_1")
 
 figure
 hold on
