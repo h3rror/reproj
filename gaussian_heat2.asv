@@ -9,6 +9,9 @@ addpath('source/');
 N = 16;
 % N = 6;
 
+    monolithic = false
+
+
 %% 1D heat equation with temperature-dependent and parameter-dependent (Gaussian) conductivity
 
 Omega = [-1 1];
@@ -61,6 +64,11 @@ F2X_exact = @(X,mu) F2_exact(X(:,1),X(:,2),mu); % enable storing variables in on
 F2_k = @(x1,x2,k) D1*((k.*x1).*(D1*x2));
 % F2X_k = @(X,k) F2_k(X(1,:),X(2,:),k,mu0);
 
+s_max = N;
+% s_max = 8;
+mus = linspace(-1,1,s_max);
+
+
 %% 1) simple setting: fixed mu
 % F2 = @(x1,x2,theta) F2_exact(x1,x2,mu0);
 % F2X = @(X,theta) F2(X(:,1),X(:,2),theta);  % enable storing variables in one matrix
@@ -78,12 +86,12 @@ k1_ = diff(k0_,xis_);
 % k1 = matlabFunction(k1_);
 k1 = eval(k1_(xis,mu0));
 
-qH = 2;
+qH = s_max;
 s = qH;
 % mus = (0:s-1)+mu0;
-mus = linspace(-1,1,s);
+% mus = linspace(-1,1,s);
 theta_H = @(mu) (mu'-mu0).^(0:s-1);
-Theta_H = theta_H(mus);
+Theta_H = theta_H(mus(1:s));
 Thetas{1} = Theta_H;
 
 % F2 = @(x1,x2,theta) sum(theta'.*[F2_k(x1,x2,k0(xis,mu0)) F2_k(x1,x2,k1)],2);
@@ -108,38 +116,15 @@ legend("show")
 
 %%
 
-% figure
-% hold on
-% mus2 = xis;
-% plot(mus2,k0(1,mus2), "displayname", "exact")
-% k1_ = taylor(k0_,mu_,ExpansionPoint = mu0, Order=1);
-% plot(mus2,eval(k1_(1,mus2)), "displayname", "Taylor 1")
-% k2_ = taylor(k0_,mu_,ExpansionPoint = mu0, Order=2);
-% plot(mus2,eval(k2_(1,mus2)), "displayname", "Taylor 2")
-% k3_ = taylor(k0_,mu_,ExpansionPoint = mu0, Order=3);
-% plot(mus2,eval(k3_(1,mus2)), "displayname", "Taylor 3")
-% 
-% legend("show")
-% title("\xi=1")
-% xlabel("\mu")
-% ylabel("k_0")
+% f = @(x,u,mu) F2(x,x,theta_H(mu)); % previously used
 
-% plot(mus2,k_sum(theta_H(mus2')'))
+f = @(x,u,mu) F2_exact(x,x,mu);
+% F2_exact = @(x1,x2,mu) D1*(nu(x1,mu).*(D1*x2));
 
-% f = @(x,u,mu) F2_exact(x,x,mu);
-f = @(x,u,mu) F2(x,x,theta_H(mu));
-% k_taylor_ = taylor(k0_,mu_,ExpansionPoint = mu0, Order = qH);
-% % k_taylor = @(xis,mu) matlabFunction((k_taylor_(xis,mu)));
-% k_taylor = matlabFunction(k_taylor_);
-% f = @(x,u,mu) F2_k(x,x,k_taylor(xis,mu));
 
 %%
 
 Nu = 0; % input signal dimension
-
-% f = @(x,u,mu) F1(x,theta_A(mu));
-
-% f = @(x,u,mu) F2(x,x);
 
 %% generate ROM basis construction data
 X_b = zeros(N,nt+1,s);
@@ -151,30 +136,14 @@ for k = 1:s
     mu = mus(:,k);
     X_b(:,:,k) = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu));
 end
-% for k = 1:s
-% t = 0;
-% x = x0;
-% u = U_b(:,1,s);
-% 
-% X_b(:,1,k) = x0;
-% % U_b(:,1) = u;
-% 
-% mu = mus(:,k);
-% for i=1:nt
-%     x = single_step(x,0,dt,f,mu);
-%     t = t + dt;
-%     u = U_b(:,i,k);
-% 
-%     X_b(:,i+1,k) = x;
-% end
-% end
 
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b(:,:),'econ');
 % n = 20;
 % n = 6;
 % n = 16;
-n = N;
+% n = N;
+n = s_max;
 
 % Vn = V(:,1:n);
 Vn = eye(n);
@@ -206,6 +175,7 @@ sota.condsD = condD;
 
 % tA2s = precompute_rom_operator_param(@(X,theta) F2X(X),Vn,2,qH);
 tA2s = precompute_rom_operator_param(@(X,theta) F2X(X,theta),Vn,2,qH);
+% tA2s = precompute_rom_operator_param(@(X,theta) F2X(X,theta),Vn,2,s_max);
 
 intr.O = tA2s(:,:);
 intr.Os = tA2s;
@@ -228,12 +198,12 @@ U0 = XU(1:Nu,:);
 % U0 = [];
 
 nf = size(tX0,2);
-tX1 = zeros(n,nf,s);
+tX1 = zeros(n,nf,s_max);
 
 % compute time step estimate (3.10)
 dt1 = dt_estimate(X_b(:,:,1),U_b(:,:,1),Vn(:,1),dt,is); % internally computes derivatives, so we cannot concatenate trajectories
 
-for k =1:s
+for k =1:s_max
     mu = mus(:,k);
     for i = 1:nf
         tX1(:,i,k) = Vn'*single_step(Vn*tX0(:,i),U0(:,i),dt1,f,mu);
@@ -262,7 +232,7 @@ deco.Omu1errors = zeros(nn,1);
 
 %% compute ROM state error
 Xmu0_FOM = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu0));
-Xmu1_FOM = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu1));
+Xmu1_FOM = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu0));
 
 ROMerror_mu0 = zeros(nn,1);
 ROMerror_mu1 = zeros(nn,1);
@@ -277,6 +247,15 @@ n_is__ = n_is(n,is);
 
 for j = 1:nn
     n_ = ns(j);
+    % n_ = s_max; % botch
+    %% NEW: changing s
+    % s = n_;
+    s = 4;
+    % s = ns(j); % botch
+    theta_H = @(mu) (mu'-mu0).^(0:s-1);
+    Theta_H = theta_H(mus(1:s));
+    Thetas{1} = Theta_H;
+    %%
     n_is_ = n_is(n_,is);
     nf_ = sum(n_is_)+Nu;
 
@@ -284,16 +263,19 @@ for j = 1:nn
     ks = [1:Nu+n_is_(1)];
 
     tX0_ = tX0(1:n_,ks);
-    dot_tX_ = dot_tX(1:n_,ks,:);
+    dot_tX_ = dot_tX(1:n_,ks,1:s);
     U0_ = U0(:,ks);
 
     hA2s_ = zeros(n_,n_is_,s);
     tA2s_ = zeros(n_,n_is_,s);
 
-    tX = repmat(full(tX0_),1,1,s);
-    [O,A_inds,B_inds,condD] = p_opinf(dot_tX_,tX,U0_,is,Thetas,true);
-    mono.O = O;
-    mono.condsD(j) = condD;
+    %% monolithic construction
+    if monolithic
+        tX = repmat(full(tX0_),1,1,s);
+        [O,A_inds,B_inds,condD] = p_opinf(dot_tX_,tX,U0_,is,Thetas,true);
+        mono.O = O;
+        mono.condsD(j) = condD;
+    end
 
     for k =1:s
         dot_tX_ = dot_tX(1:n_,ks,k);
@@ -322,7 +304,9 @@ for j = 1:nn
     deco.O = hA2s_(:,:)*kron(inv(Theta_H),eye(n_is_))';
     % O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro")/norm(tO_,"fro");
     deco.O_errors(j) = norm(tA2s_(:,:)-deco.O,"fro");
-    mono.O_errors(j) = norm(tA2s_(:,:)-mono.O,"fro");
+    if monolithic
+        mono.O_errors(j) = norm(tA2s_(:,:)-mono.O,"fro");
+    end
 
     deco.Os = reshape(deco.O,[n_, n_is_(1), s]);
     
@@ -333,7 +317,7 @@ for j = 1:nn
 
     %% compute ROM state error
     % Xmu0_FOM = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu0));
-    % Xmu1_FOM = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu1));
+    % Xmu1_FOM = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu0));
 
     In_2 = kron2power(n_,2);
     ROMmu0_step = @(x) x+ dt*Omu0_*In_2*kron(x,x);
@@ -351,8 +335,6 @@ for j = 1:nn
     semilogy(ts,ROMerror_mu0,'DisplayName',"n=" +num2str(n_))
     figure(8)
     semilogy(ts,ROMerror_mu1,'DisplayName',"n=" +num2str(n_))
-    % does not converge because wrong f is used: not FS_exact, but a Taylor
-    % approximation in mu0!
 end
 
 figure(7)
@@ -373,7 +355,9 @@ title("\mu_1")
 
 figure
 hold on
-semilogy(ns,sum(mono.O_errors,2)/qH,'x-', 'LineWidth', 2,'DisplayName',"monolithic")
+if monolithic
+    semilogy(ns,sum(mono.O_errors,2)/qH,'x-', 'LineWidth', 2,'DisplayName',"monolithic")
+end
 semilogy(ns,sum(deco.O_errors,2)/qH,'x-', 'LineWidth', 2,'DisplayName',"decoupled")
 ylabel("operator error")
 xlabel("ROM dimension")
@@ -383,7 +367,9 @@ legend("show")
 
 figure
 hold on
-semilogy(ns,mono.condsD,'x-', 'LineWidth', 2,'DisplayName',"monolithic")
+if monolithic
+    semilogy(ns,mono.condsD,'x-', 'LineWidth', 2,'DisplayName',"monolithic")
+end
 semilogy(ns,sum(deco.condsD,2)/s,'x-', 'LineWidth', 2,'DisplayName',"decoupled")
 semilogy(n,sota.condsD, 'x-', 'LineWidth', 2,'DisplayName',"state of the art")
 ylabel("condition number")
@@ -394,8 +380,8 @@ legend("show")
 
 figure
 hold on
-semilogy(ns,deco.Omu0errors,'DisplayName',"\mu_0")
-semilogy(ns,deco.Omu1errors,'DisplayName',"\mu_1")
+semilogy(ns,deco.Omu0errors,'x-','DisplayName',"\mu_0")
+semilogy(ns,deco.Omu1errors,'x-','DisplayName',"\mu_1")
 ylabel("operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')

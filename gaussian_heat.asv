@@ -179,6 +179,12 @@ n = N;
 Vn = V(:,1:n);
 % Vn = eye(n);
 
+%% singular value decay
+figure
+semilogy(diag(S)/S(1,1))
+title("singular value decay")
+
+
 %% opinf on ROM basis snapshot data
 % tX_b = Vn'*X_b;
 tX_b = pagemtimes(Vn',X_b);
@@ -338,21 +344,30 @@ for j = 1:nn
     Xmu1 = simulate(Vn_'*x0,dt,nt,ROMmu1_step);
 
     ROMerror_mu0 = vecwise_2norm(Xmu0_FOM - Vn_*Xmu0);
-    ROMerror_mu0 = vecwise_2norm(Xmu1_FOM - Vn_*Xmu1);
+    ROMerror_mu1 = vecwise_2norm(Xmu1_FOM - Vn_*Xmu1);
 
-    ts = 
+    ts = 0:dt:t_end;
     figure(7)
     semilogy(ts,ROMerror_mu0,'DisplayName',"n=" +num2str(n_))
     figure(8)
-    semilogy(ts,ROMerror_mu0,'DisplayName',"n=" +num2str(n_))
+    semilogy(ts,ROMerror_mu1,'DisplayName',"n=" +num2str(n_))
 end
 
 figure(7)
 ylabel("ROM state error")
-xlabel("ROM dimension")
+xlabel("time")
 set(gca, 'YScale', 'log')
 grid on
 legend("show")
+title("\mu_0")
+
+figure(8)
+ylabel("ROM state error")
+xlabel("time")
+set(gca, 'YScale', 'log')
+grid on
+legend("show")
+title("\mu_1")
 
 figure
 hold on
