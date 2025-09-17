@@ -5,11 +5,12 @@ rng(1); % for reproducibility
 
 addpath('source/');
 
-% N = 128;
-N = 16;
+N = 128;
+% N = 16;
 % N = 6;
 
-    monolithic = false
+    % monolithic = false
+    monolithic = true
 
 
 %% 1D heat equation with temperature-dependent and parameter-dependent (Gaussian) conductivity
@@ -65,8 +66,8 @@ F2X_exact = @(X,mu) F2_exact(X(:,1),X(:,2),mu); % enable storing variables in on
 F2_k = @(x1,x2,k) D1*((k.*x1).*(D1*x2));
 % F2X_k = @(X,k) F2_k(X(1,:),X(2,:),k,mu0);
 
-s_max = N;
-% s_max = 8;
+% s_max = N;
+s_max = 16;
 mus = linspace(-1,1,s_max);
 mus = flip(mus)
 
@@ -100,20 +101,20 @@ Thetas{1} = Theta_H;
 F2X = @(X,theta) F2(X(:,1),X(:,2),theta); % enable storing variables in one matrix
 
 %% some plots
-figure
-hold on
-plot(xis,F2_exact(x0,x0,mu0), "DisplayName","exact")
-plot(xis,F2X([x0,x0],theta_H(mu0)),'--',"DisplayName","Taylor approx "+qH)
-title("RHS evaluated at x_0 and  \mu_0")
-legend("show")
-
+% figure
+% hold on
+% plot(xis,F2_exact(x0,x0,mu0), "DisplayName","exact")
+% plot(xis,F2X([x0,x0],theta_H(mu0)),'--',"DisplayName","Taylor approx "+qH)
+% title("RHS evaluated at x_0 and  \mu_0")
+% legend("show")
+% 
 mu1 = -1;
-figure
-hold on
-plot(xis,F2_exact(x0,x0,mu1), "DisplayName","exact")
-plot(xis,F2X([x0,x0],theta_H(mu1)),'--',"DisplayName","Taylor approx "+qH)
-title("RHS evaluated at x_0 and \mu="+ num2str(mu1))
-legend("show")
+% figure
+% hold on
+% plot(xis,F2_exact(x0,x0,mu1), "DisplayName","exact")
+% plot(xis,F2X([x0,x0],theta_H(mu1)),'--',"DisplayName","Taylor approx "+qH)
+% title("RHS evaluated at x_0 and \mu="+ num2str(mu1))
+% legend("show")
 
 %%
 
@@ -231,6 +232,9 @@ mono.condsD = zeros(nn,1);
 deco.Omu0errors = zeros(nn,1);
 deco.Omu1errors = zeros(nn,1);
 
+mono.Omu0errors = zeros(nn,1);
+mono.Omu1errors = zeros(nn,1);
+
 %% compute ROM state error
 Xmu0_FOM = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu0));
 Xmu1_FOM = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu1));
@@ -238,21 +242,22 @@ Xmu1_FOM = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu1));
 ROMerror_mu0 = zeros(nn,1);
 ROMerror_mu1 = zeros(nn,1);
 
-figure(7)
-hold on
-figure(8)
-hold on
+% figure(7)
+% hold on
+% figure(8)
+% hold on
 %%
 
 n_is__ = n_is(n,is);
 
 for j = 1:nn
     n_ = ns(j);
+    % n_ = 4;
     % n_ = s_max; % botch
     %% NEW: changing s
-    s = n_;
+    % s = n_;
     % s = 4;
-    % s = ns(j); % botch
+    s = ns(j); % botch
     theta_H = @(mu) (mu'-mu0).^(0:s-1);
     Theta_H = theta_H(mus(1:s));
     Thetas{1} = Theta_H;
@@ -315,6 +320,11 @@ for j = 1:nn
     deco.Omu1errors(j) = norm(affine_op(deco.Os,theta_H(mu1))-Omu1_)/norm(Omu1);
     Omu0_ = Omu0(1:n_,1:n_is_(1));
     deco.Omu0errors(j) = norm(affine_op(deco.Os,theta_H(mu0))-Omu0_)/norm(Omu0);
+    if monolithic
+        mono.Os = reshape(mono.O,[n_, n_is_(1), s]);
+        mono.Omu1errors(j) = norm(affine_op(mono.Os,theta_H(mu1))-Omu1_)/norm(Omu1);
+        mono.Omu0errors(j) = norm(affine_op(mono.Os,theta_H(mu0))-Omu0_)/norm(Omu0);
+    end
 
     %% compute ROM state error
     % Xmu0_FOM = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu0));
@@ -332,31 +342,31 @@ for j = 1:nn
     Xmu0 = simulate(Vn_'*x0,dt,nt,ROMmu0_step);
     Xmu1 = simulate(Vn_'*x0,dt,nt,ROMmu1_step);
 
-    ROMerror_mu0 = vecwise_2norm(Xmu0_FOM - Vn_*Xmu0);
-    ROMerror_mu1 = vecwise_2norm(Xmu1_FOM - Vn_*Xmu1);
-
-    ts = 0:dt:t_end;
-    figure(7)
-    semilogy(ts,ROMerror_mu0,'DisplayName',"n=" +num2str(n_))
-    figure(8)
-    semilogy(ts,ROMerror_mu1,'DisplayName',"n=" +num2str(n_))
+    ROMerror_mu0(j) = sum(vecwise_2norm(Xmu0_FOM - Vn_*Xmu0))/sum(vecwise_2norm(Xmu0_FOM));
+    ROMerror_mu1(j) = sum(vecwise_2norm(Xmu1_FOM - Vn_*Xmu1))/sum(vecwise_2norm(Xmu1_FOM));
+     
+    % ts = 0:dt:t_end;
+    % figure(7)
+    % semilogy(ts,ROMerror_mu0,'DisplayName',"n=" +num2str(n_))
+    % figure(8)
+    % semilogy(ts,ROMerror_mu1,'DisplayName',"n=" +num2str(n_))
 end
 
-figure(7)
-ylabel("ROM state error")
-xlabel("time")
-set(gca, 'YScale', 'log')
-grid on
-legend("show")
-title("\mu_0")
-
-figure(8)
-ylabel("ROM state error")
-xlabel("time")
-set(gca, 'YScale', 'log')
-grid on
-legend("show")
-title("\mu_1")
+% figure(7)
+% ylabel("ROM state error")
+% xlabel("time")
+% set(gca, 'YScale', 'log')
+% grid on
+% legend("show")
+% title("\mu_0")
+% 
+% figure(8)
+% ylabel("ROM state error")
+% xlabel("time")
+% set(gca, 'YScale', 'log')
+% grid on
+% legend("show")
+% title("\mu_1")
 
 figure
 hold on
@@ -387,6 +397,10 @@ figure
 hold on
 semilogy(ns,deco.Omu0errors,'x-','DisplayName',"\mu_0")
 semilogy(ns,deco.Omu1errors,'x-','DisplayName',"\mu_1")
+if monolithic
+    semilogy(ns,mono.Omu0errors,'+--','DisplayName',"\mu_0 mono")
+    semilogy(ns,mono.Omu1errors,'+--','DisplayName',"\mu_1 mono")
+end
 ylabel("operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
@@ -394,6 +408,18 @@ grid on
 legend("show")
 title("q_H = "+num2str(qH))
 
+figure
+hold on
+semilogy(ns,ROMerror_mu0,'x-','DisplayName',"\mu_0")
+semilogy(ns,ROMerror_mu1,'x-','DisplayName',"\mu_1")
+ylabel("average ROM state error")
+xlabel("increasing dimension")
+set(gca, 'YScale', 'log')
+grid on
+legend("show")
+title("ROM dim and Taylor dim increasing")
+% title("ROM dim increasing, Taylor dim = "+num2str(s))
+% title("ROM dim =" + num2str(n_) + ", Taylor dim increasing")
 
 %% visualize singular values
 % figure; semilogy(diag(S),'o-')

@@ -100,20 +100,20 @@ Thetas{1} = Theta_H;
 F2X = @(X,theta) F2(X(:,1),X(:,2),theta); % enable storing variables in one matrix
 
 %% some plots
-figure
-hold on
-plot(xis,F2_exact(x0,x0,mu0), "DisplayName","exact")
-plot(xis,F2X([x0,x0],theta_H(mu0)),'--',"DisplayName","Taylor approx "+qH)
-title("RHS evaluated at x_0 and  \mu_0")
-legend("show")
-
-mu1 = -1;
-figure
-hold on
-plot(xis,F2_exact(x0,x0,mu1), "DisplayName","exact")
-plot(xis,F2X([x0,x0],theta_H(mu1)),'--',"DisplayName","Taylor approx "+qH)
-title("RHS evaluated at x_0 and \mu="+ num2str(mu1))
-legend("show")
+% figure
+% hold on
+% plot(xis,F2_exact(x0,x0,mu0), "DisplayName","exact")
+% plot(xis,F2X([x0,x0],theta_H(mu0)),'--',"DisplayName","Taylor approx "+qH)
+% title("RHS evaluated at x_0 and  \mu_0")
+% legend("show")
+% 
+% mu1 = -1;
+% figure
+% hold on
+% plot(xis,F2_exact(x0,x0,mu1), "DisplayName","exact")
+% plot(xis,F2X([x0,x0],theta_H(mu1)),'--',"DisplayName","Taylor approx "+qH)
+% title("RHS evaluated at x_0 and \mu="+ num2str(mu1))
+% legend("show")
 
 %%
 
@@ -332,14 +332,14 @@ for j = 1:nn
     Xmu0 = simulate(Vn_'*x0,dt,nt,ROMmu0_step);
     Xmu1 = simulate(Vn_'*x0,dt,nt,ROMmu1_step);
 
-    ROMerror_mu0 = vecwise_2norm(Xmu0_FOM - Vn_*Xmu0);
-    ROMerror_mu1 = vecwise_2norm(Xmu1_FOM - Vn_*Xmu1);
-
-    ts = 0:dt:t_end;
-    figure(7)
-    semilogy(ts,ROMerror_mu0,'DisplayName',"n=" +num2str(n_))
-    figure(8)
-    semilogy(ts,ROMerror_mu1,'DisplayName',"n=" +num2str(n_))
+    ROMerror_mu0 = sum(vecwise_2norm(Xmu0_FOM - Vn_*Xmu0))/sum(vecwise_2norm(Xmu0_FOM));
+    ROMerror_mu1 = sum(vecwise_2norm(Xmu1_FOM - Vn_*Xmu1))/sum(vecwise_2norm(Xmu1_FOM));
+     
+    % ts = 0:dt:t_end;
+    % figure(7)
+    % semilogy(ts,ROMerror_mu0,'DisplayName',"n=" +num2str(n_))
+    % figure(8)
+    % semilogy(ts,ROMerror_mu1,'DisplayName',"n=" +num2str(n_))
 end
 
 figure(7)
