@@ -101,20 +101,21 @@ Thetas{1} = Theta_H;
 F2X = @(X,theta) F2(X(:,1),X(:,2),theta); % enable storing variables in one matrix
 
 %% some plots
-% figure
-% hold on
-% plot(xis,F2_exact(x0,x0,mu0), "DisplayName","exact")
-% plot(xis,F2X([x0,x0],theta_H(mu0)),'--',"DisplayName","Taylor approx "+qH)
-% title("RHS evaluated at x_0 and  \mu_0")
-% legend("show")
-% 
+figure
+hold on
+plot(xis,F2_exact(x0,x0,mu0), "DisplayName","exact")
+plot(xis,F2X([x0,x0],theta_H(mu0)),'--',"DisplayName","Taylor approx "+qH)
+title("RHS evaluated at x_0 and  \mu_0")
+legend("show")
+
 mu1 = -1;
-% figure
-% hold on
-% plot(xis,F2_exact(x0,x0,mu1), "DisplayName","exact")
-% plot(xis,F2X([x0,x0],theta_H(mu1)),'--',"DisplayName","Taylor approx "+qH)
-% title("RHS evaluated at x_0 and \mu="+ num2str(mu1))
-% legend("show")
+% mu1 = -mu0;
+figure
+hold on
+plot(xis,F2_exact(x0,x0,mu1), "DisplayName","exact")
+plot(xis,F2X([x0,x0],theta_H(mu1)),'--',"DisplayName","Taylor approx "+qH)
+title("RHS evaluated at x_0 and \mu="+ num2str(mu1))
+legend("show")
 
 %%
 
@@ -370,10 +371,10 @@ end
 
 figure
 hold on
-if monolithic
-    semilogy(ns,sum(mono.O_errors,2)/qH,'x-', 'LineWidth', 2,'DisplayName',"monolithic")
-end
 semilogy(ns,sum(deco.O_errors,2)/qH,'x-', 'LineWidth', 2,'DisplayName',"decoupled")
+if monolithic
+    semilogy(ns,sum(mono.O_errors,2)/qH,'+--', 'LineWidth', 2,'DisplayName',"monolithic")
+end
 ylabel("operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
