@@ -70,7 +70,7 @@ F2_k = @(x1,x2,k) D1*((k.*x1).*(D1*x2));
 s_max = 16;
 % s_max = 30;
 mus = linspace(-1,1,s_max);
-mus = flip(mus)
+% mus = flip(mus)
 
 %% 1) simple setting: fixed mu
 % F2 = @(x1,x2,theta) F2_exact(x1,x2,mu0);
@@ -261,8 +261,8 @@ for j = 1:nn
     % n_ = s_max; % botch
     %% NEW: changing s
     % s = n_;
-    % s = 4;
-    s = ns(j); % botch
+    s = 4;
+    % s = ns(j); % botch
     theta_H = @(mu) (mu'-mu0).^(0:s-1);
     Theta_H = theta_H(mus(1:s));
     Thetas{1} = Theta_H;
