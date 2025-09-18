@@ -5,11 +5,12 @@ rng(1); % for reproducibility
 
 addpath('source/');
 
-% N = 128;
-N = 16;
+N = 128;
+% N = 16;
 % N = 6;
 
-    monolithic = false
+    % monolithic = false
+    monolithic = true
 
 
 %% 1D heat equation with temperature-dependent and parameter-dependent (Gaussian) conductivity
@@ -65,8 +66,8 @@ F2X_exact = @(X,mu) F2_exact(X(:,1),X(:,2),mu); % enable storing variables in on
 F2_k = @(x1,x2,k) D1*((k.*x1).*(D1*x2));
 % F2X_k = @(X,k) F2_k(X(1,:),X(2,:),k,mu0);
 
-s_max = N;
-% s_max = 8;
+% s_max = N;
+s_max = 20;
 mus = linspace(-1,1,s_max);
 mus = flip(mus)
 

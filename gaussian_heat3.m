@@ -68,6 +68,7 @@ F2_k = @(x1,x2,k) D1*((k.*x1).*(D1*x2));
 
 % s_max = N;
 s_max = 16;
+% s_max = 30;
 mus = linspace(-1,1,s_max);
 mus = flip(mus)
 
@@ -240,8 +241,11 @@ mono.Omu1errors = zeros(nn,1);
 Xmu0_FOM = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu0));
 Xmu1_FOM = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu1));
 
-ROMerror_mu0 = zeros(nn,1);
-ROMerror_mu1 = zeros(nn,1);
+deco.ROMerror_mu0 = zeros(nn,1);
+deco.ROMerror_mu1 = zeros(nn,1);
+
+mono.ROMerror_mu0 = zeros(nn,1);
+mono.ROMerror_mu1 = zeros(nn,1);
 
 % figure(7)
 % hold on
@@ -333,19 +337,35 @@ for j = 1:nn
 
     In_2 = kron2power(n_,2);
     % ROMmu0_step = @(x) x+ dt*Omu0_*In_2*kron(x,x);
-    Omu0_2 = affine_op(deco.Os,theta_H(mu0));
-    ROMmu0_step = @(x) x+ dt*Omu0_2*In_2*kron(x,x);
+    deco.Omu0_ = affine_op(deco.Os,theta_H(mu0));
+    deco.ROMmu0_step = @(x) x+ dt*deco.Omu0_*In_2*kron(x,x);
     % ROMmu1_step = @(x) x+ dt*Omu1_*In_2*kron(x,x);
-    Omu1_2 = affine_op(deco.Os,theta_H(mu1));
-    ROMmu1_step = @(x) x+ dt*Omu1_2*In_2*kron(x,x);
+    deco.Omu1_ = affine_op(deco.Os,theta_H(mu1));
+    deco.ROMmu1_step = @(x) x+ dt*deco.Omu1_*In_2*kron(x,x);
 
     Vn_ = Vn(:,1:n_);
-    Xmu0 = simulate(Vn_'*x0,dt,nt,ROMmu0_step);
-    Xmu1 = simulate(Vn_'*x0,dt,nt,ROMmu1_step);
+    deco.Xmu0 = simulate(Vn_'*x0,dt,nt,deco.ROMmu0_step);
+    deco.Xmu1 = simulate(Vn_'*x0,dt,nt,deco.ROMmu1_step);
 
-    ROMerror_mu0(j) = sum(vecwise_2norm(Xmu0_FOM - Vn_*Xmu0))/sum(vecwise_2norm(Xmu0_FOM));
-    ROMerror_mu1(j) = sum(vecwise_2norm(Xmu1_FOM - Vn_*Xmu1))/sum(vecwise_2norm(Xmu1_FOM));
+    deco.ROMerror_mu0(j) = sum(vecwise_2norm(Xmu0_FOM - Vn_*deco.Xmu0))/sum(vecwise_2norm(Xmu0_FOM));
+    deco.ROMerror_mu1(j) = sum(vecwise_2norm(Xmu1_FOM - Vn_*deco.Xmu1))/sum(vecwise_2norm(Xmu1_FOM));
      
+    if monolithic
+        % ROMmu0_step = @(x) x+ dt*Omu0_*In_2*kron(x,x);
+        mono.Omu0_ = affine_op(mono.Os,theta_H(mu0));
+        mono.ROMmu0_step = @(x) x+ dt*mono.Omu0_*In_2*kron(x,x);
+        % ROMmu1_step = @(x) x+ dt*Omu1_*In_2*kron(x,x);
+        mono.Omu1_ = affine_op(mono.Os,theta_H(mu1));
+        mono.ROMmu1_step = @(x) x+ dt*mono.Omu1_*In_2*kron(x,x);
+
+        Vn_ = Vn(:,1:n_);
+        mono.Xmu0 = simulate(Vn_'*x0,dt,nt,mono.ROMmu0_step);
+        mono.Xmu1 = simulate(Vn_'*x0,dt,nt,mono.ROMmu1_step);
+
+        mono.ROMerror_mu0(j) = sum(vecwise_2norm(Xmu0_FOM - Vn_*mono.Xmu0))/sum(vecwise_2norm(Xmu0_FOM));
+        mono.ROMerror_mu1(j) = sum(vecwise_2norm(Xmu1_FOM - Vn_*mono.Xmu1))/sum(vecwise_2norm(Xmu1_FOM));
+    end
+
     % ts = 0:dt:t_end;
     % figure(7)
     % semilogy(ts,ROMerror_mu0,'DisplayName',"n=" +num2str(n_))
@@ -411,8 +431,12 @@ title("q_H = "+num2str(qH))
 
 figure
 hold on
-semilogy(ns,ROMerror_mu0,'x-','DisplayName',"\mu_0")
-semilogy(ns,ROMerror_mu1,'x-','DisplayName',"\mu_1")
+semilogy(ns,deco.ROMerror_mu0,'x-','DisplayName',"\mu_0")
+semilogy(ns,deco.ROMerror_mu1,'x-','DisplayName',"\mu_1")
+if monolithic
+    semilogy(ns,mono.ROMerror_mu0,'+--','DisplayName',"\mu_0 mono")
+    semilogy(ns,mono.ROMerror_mu1,'+--','DisplayName',"\mu_1 mono")
+end
 ylabel("average ROM state error")
 xlabel("increasing dimension")
 set(gca, 'YScale', 'log')
