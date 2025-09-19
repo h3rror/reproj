@@ -67,10 +67,12 @@ F2_k = @(x1,x2,k) D1*((k.*x1).*(D1*x2));
 % F2X_k = @(X,k) F2_k(X(1,:),X(2,:),k,mu0);
 
 % s_max = N;
-s_max = 16;
+% s_max = 16;
+s_max = 1;
 % s_max = 30;
 mus = linspace(-1,1,s_max);
-% mus = flip(mus)
+mus = flip(mus)
+mus = mu0
 
 %% 1) simple setting: fixed mu
 % F2 = @(x1,x2,theta) F2_exact(x1,x2,mu0);
@@ -143,11 +145,11 @@ end
 
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b(:,:),'econ');
-% n = 20;
+n = 20;
 % n = 6;
 % n = 16;
 % n = N;
-n = s_max;
+% n = s_max;
 
 Vn = V(:,1:n);
 % Vn = eye(n);
@@ -261,7 +263,8 @@ for j = 1:nn
     % n_ = s_max; % botch
     %% NEW: changing s
     % s = n_;
-    s = 4;
+    s = 1;
+    % s = qH;
     % s = ns(j); % botch
     theta_H = @(mu) (mu'-mu0).^(0:s-1);
     Theta_H = theta_H(mus(1:s));
@@ -314,9 +317,9 @@ for j = 1:nn
 
     deco.O = hA2s_(:,:)*kron(inv(Theta_H),eye(n_is_))';
     % O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro")/norm(tO_,"fro");
-    deco.O_errors(j) = norm(tA2s_(:,:)-deco.O,"fro");
+    deco.O_errors(j) = norm(tA2s_(:,:)-deco.O,"fro")/norm(tA2s_(:,:), "fro");
     if monolithic
-        mono.O_errors(j) = norm(tA2s_(:,:)-mono.O,"fro");
+        mono.O_errors(j) = norm(tA2s_(:,:)-mono.O,"fro")/norm(tA2s_(:,:), "fro");
     end
 
     deco.Os = reshape(deco.O,[n_, n_is_(1), s]);
@@ -400,6 +403,7 @@ xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
 legend("show")
+title("compares against Taylor approximation!")
 
 figure
 hold on
@@ -427,7 +431,7 @@ xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
 legend("show")
-title("q_H = "+num2str(qH))
+title("compares against exact Gaussian!")
 
 figure
 hold on
@@ -442,8 +446,8 @@ xlabel("increasing dimension")
 set(gca, 'YScale', 'log')
 grid on
 legend("show")
-title("ROM dim and Taylor dim increasing")
-% title("ROM dim increasing, Taylor dim = "+num2str(s))
+% title("ROM dim and Taylor dim increasing")
+title("ROM dim increasing, Taylor dim = "+num2str(s))
 % title("ROM dim =" + num2str(n_) + ", Taylor dim increasing")
 
 %% visualize singular values
