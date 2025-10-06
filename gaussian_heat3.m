@@ -68,11 +68,13 @@ F2_k = @(x1,x2,k) D1*((k.*x1).*(D1*x2));
 
 % s_max = N;
 % s_max = 16;
-s_max = 1;
+s_max = 6;
+% s_max = 1;
+% s_max = 1;
 % s_max = 30;
 mus = linspace(-1,1,s_max);
 mus = flip(mus)
-mus = mu0
+% mus = mu0
 
 %% 1) simple setting: fixed mu
 % F2 = @(x1,x2,theta) F2_exact(x1,x2,mu0);
@@ -145,11 +147,13 @@ end
 
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b(:,:),'econ');
-n = 20;
+% n = 20;
 % n = 6;
 % n = 16;
 % n = N;
 % n = s_max;
+fac = 12;
+n = fac*s_max;
 
 Vn = V(:,1:n);
 % Vn = eye(n);
@@ -219,7 +223,9 @@ end
 dot_tX = (tX1-tX0)/dt1;
 
 %%
-ns = 1:n;
+% ns = 1:n;
+ss = 1:s_max;
+ns = fac*(1:s_max);
 % ns = n;
 nn = numel(ns);
 
@@ -263,9 +269,10 @@ for j = 1:nn
     % n_ = s_max; % botch
     %% NEW: changing s
     % s = n_;
-    s = 1;
+    % s = 1;
     % s = qH;
     % s = ns(j); % botch
+    s = ss(j); % botch
     theta_H = @(mu) (mu'-mu0).^(0:s-1);
     Theta_H = theta_H(mus(1:s));
     Thetas{1} = Theta_H;
