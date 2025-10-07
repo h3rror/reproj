@@ -67,10 +67,15 @@ F2X_exact = @(X,mu) F2_exact(X(:,1),X(:,2),mu); % enable storing variables in on
 F2_k = @(x1,x2,k) D1*((k.*x1).*(D1*x2));
 % F2X_k = @(X,k) F2_k(X(1,:),X(2,:),k,mu0);
 
+reg_fac = 2;
+
+% qH_max = 16;
+qH_max = 30;
 % s_max = N;
 % s_max = 16;
+s_max = reg_fac*qH_max;
 % s_max = 6;
-s_max = 2*6;
+% s_max = 6;
 % s_max = 1;
 % s_max = 1;
 % s_max = 30;
@@ -96,7 +101,6 @@ k1_ = diff(k0_,xis_);
 k1 = eval(k1_(xis,mu0));
 
 s = s_max;
-reg_fac = 2;
 qH = round(s_max/reg_fac)
 % qH = s_max;
 % s = qH;
@@ -159,8 +163,8 @@ end
 % n = 16;
 % n = N;
 % n = s_max;
-fac = 2;
-n = fac*s_max;
+fac = (1/reg_fac);
+n = round(fac*s_max);
 
 Vn = V(:,1:n);
 % Vn = eye(n);
@@ -231,8 +235,12 @@ dot_tX = (tX1-tX0)/dt1;
 
 %%
 % ns = 1:n;
-ss = 1:s_max;
-ns = fac*(1:s_max);
+qHs = 1:qH_max;
+ss = reg_fac*qHs;
+ns = fac*ss;
+
+% ss = round(reg_fac*(1:s_max/reg_fac));
+% ns = round(fac*(ss));
 % ns = n;
 nn = numel(ns);
 

@@ -68,10 +68,10 @@ F2_k = @(x1,x2,k) D1*((k.*x1).*(D1*x2));
 
 % s_max = N;
 % s_max = 16;
-s_max = 6;
+% s_max = 6;
 % s_max = 1;
 % s_max = 1;
-% s_max = 30;
+s_max = 30;
 mus = linspace(-1,1,s_max);
 mus = flip(mus)
 % mus = mu0
@@ -152,7 +152,8 @@ end
 % n = 16;
 % n = N;
 % n = s_max;
-fac = 12;
+% fac = 12;
+fac = 1;
 n = fac*s_max;
 
 Vn = V(:,1:n);
@@ -322,7 +323,8 @@ for j = 1:nn
         tA2s_(:,:,k) = tA2_;
     end
 
-    deco.O = hA2s_(:,:)*kron(inv(Theta_H),eye(n_is_))';
+    % deco.O = hA2s_(:,:)*kron(inv(Theta_H),eye(n_is_))';
+    deco.O = hA2s_(:,:)/kron((Theta_H),eye(n_is_))';
     % O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro")/norm(tO_,"fro");
     deco.O_errors(j) = norm(tA2s_(:,:)-deco.O,"fro")/norm(tA2s_(:,:), "fro");
     if monolithic

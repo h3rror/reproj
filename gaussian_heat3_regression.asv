@@ -67,10 +67,12 @@ F2X_exact = @(X,mu) F2_exact(X(:,1),X(:,2),mu); % enable storing variables in on
 F2_k = @(x1,x2,k) D1*((k.*x1).*(D1*x2));
 % F2X_k = @(X,k) F2_k(X(1,:),X(2,:),k,mu0);
 
+reg_fac = 10;
+
 % s_max = N;
-% s_max = 16;
+s_max = 16;
 % s_max = 6;
-s_max = 2*6;
+% s_max = 6;
 % s_max = 1;
 % s_max = 1;
 % s_max = 30;
@@ -96,12 +98,12 @@ k1_ = diff(k0_,xis_);
 k1 = eval(k1_(xis,mu0));
 
 s = s_max;
-qH = round(s_max/2)
+qH = round(s_max/reg_fac)
 % qH = s_max;
 % s = qH;
 % mus = (0:s-1)+mu0;
 % mus = linspace(-1,1,s);
-theta_H = @(mu) (mu'-mu0).^(0:s-1);
+theta_H = @(mu) (mu'-mu0).^(0:qH-1);
 Theta_H = theta_H(mus(1:s));
 Thetas{1} = Theta_H;
 
@@ -158,8 +160,8 @@ end
 % n = 16;
 % n = N;
 % n = s_max;
-fac = 2;
-n = fac*s_max;
+fac = (1/reg_fac);
+n = round(fac*s_max);
 
 Vn = V(:,1:n);
 % Vn = eye(n);
@@ -230,7 +232,7 @@ dot_tX = (tX1-tX0)/dt1;
 
 %%
 % ns = 1:n;
-ss = 1:s_max;
+ss = reg_fac1:s_max;
 ns = fac*(1:s_max);
 % ns = n;
 nn = numel(ns);
@@ -279,10 +281,12 @@ for j = 1:nn
     % s = qH;
     % s = ns(j); % botch
     s = ss(j); % botch
-    theta_H = @(mu) (mu'-mu0).^(0:s-1);
+
+    qH_ = round(s/reg_fac)
+
+    theta_H = @(mu) (mu'-mu0).^(0:qH_-1);
     Theta_H = theta_H(mus(1:s));
     Thetas{1} = Theta_H;
-    qH_ = round(s/2)
     %%
     n_is_ = n_is(n_,is);
     nf_ = sum(n_is_)+Nu;
@@ -322,7 +326,7 @@ for j = 1:nn
 
             % tB_ = tB(1:n_,:);
             % tA1_ = tA1s(1:n_,1:n_is_(1),k);
-            tA2_ = tA2s(1:n_,1:n_is_(1),k);
+            % tA2_ = tA2s(1:n_,1:n_is_(1),k);
             % tA2_ = tA2(1:n_,1:n_is_(2));
 
             % tO_ = [tA1_ tA2_];
@@ -347,13 +351,13 @@ for j = 1:nn
     Omu0_ = Omu0(1:n_,1:n_is_(1));
 
     if decoupled
-        deco.Os = reshape(deco.O,[n_, n_is_(1), s]);
+        deco.Os = reshape(deco.O,[n_, n_is_(1), qH_]);
 
         deco.Omu1errors(j) = norm(affine_op(deco.Os,theta_H(mu1))-Omu1_)/norm(Omu1);
         deco.Omu0errors(j) = norm(affine_op(deco.Os,theta_H(mu0))-Omu0_)/norm(Omu0);
     end
     if monolithic
-        mono.Os = reshape(mono.O,[n_, n_is_(1), s]);
+        mono.Os = reshape(mono.O,[n_, n_is_(1), qH_]);
         mono.Omu1errors(j) = norm(affine_op(mono.Os,theta_H(mu1))-Omu1_)/norm(Omu1);
         mono.Omu0errors(j) = norm(affine_op(mono.Os,theta_H(mu0))-Omu0_)/norm(Omu0);
     end
