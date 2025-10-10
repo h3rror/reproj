@@ -67,12 +67,12 @@ F2_k = @(x1,x2,k) D1*((k.*x1).*(D1*x2));
 % F2X_k = @(X,k) F2_k(X(1,:),X(2,:),k,mu0);
 
 % s_max = N;
-% s_max = 16;
+% s_max = 18;
 % s_max = 6;
 % s_max = 1;
 % s_max = 1;
 % s_max = 30;
-s_max = 20;
+s_max = 21;
 mus = linspace(-1,1,s_max);
 mus = flip(mus)
 % mus = mu0
@@ -272,9 +272,9 @@ for j = 1:nn
     %% NEW: changing s
     % s = n_;
     % s = 1;
-    % s = qH;
+    s = qH;
     % s = ns(j); % botch
-    s = ss(j); % botch
+    % s = ss(j); % botch
     theta_H = @(mu) (mu'-mu0).^(0:s-1);
     Theta_H = theta_H(mus(1:s));
     Thetas{1} = Theta_H;
