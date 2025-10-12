@@ -67,12 +67,12 @@ F2_k = @(x1,x2,k) D1*((k.*x1).*(D1*x2));
 % F2X_k = @(X,k) F2_k(X(1,:),X(2,:),k,mu0);
 
 % s_max = N;
-% s_max = 18;
+s_max = 18;
 % s_max = 6;
 % s_max = 1;
 % s_max = 1;
 % s_max = 30;
-s_max = 21;
+% s_max = 21;
 mus = linspace(-1,1,s_max);
 mus = flip(mus)
 % mus = mu0
@@ -136,26 +136,31 @@ f = @(x,u,mu) F2_exact(x,x,mu);
 Nu = 0; % input signal dimension
 
 %% generate ROM basis construction data
-X_b = zeros(N,nt+1,s);
-U_b = zeros(Nu,nt+1,s); 
+s_b = 5;
+
+X_b = zeros(N,nt+1,s_b);
+U_b = zeros(Nu,nt+1,s_b); 
 % X0s = 10*[-sin(pi/2*xs)' sin(3*pi/2*xs)']; % -> make intial condition satisfy BC
 % x0 = -sin(pi/2*xis); % -> make intial condition satisfy BC
+% mus_b = mus; % so far used
+mus_b = linspace(-1,1,s_b);
 
-for k = 1:s
-    mu = mus(:,k);
+
+for k = 1:s_b
+    mu = mus_b(:,k);
     X_b(:,:,k) = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu));
 end
 
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b(:,:),'econ');
-% n = 20;
+n = 30;
 % n = 6;
 % n = 16;
 % n = N;
 % n = s_max;
 % fac = 12;
-fac = 1;
-n = fac*s_max;
+% fac = 1;
+% n = fac*s_max;
 
 Vn = V(:,1:n);
 % Vn = eye(n);
@@ -225,9 +230,9 @@ end
 dot_tX = (tX1-tX0)/dt1;
 
 %%
-% ns = 1:n;
+ns = 1:n;
 ss = 1:s_max;
-ns = fac*(1:s_max);
+% ns = fac*(1:s_max);
 % ns = n;
 nn = numel(ns);
 
@@ -335,13 +340,13 @@ for j = 1:nn
     deco.Os = reshape(deco.O,[n_, n_is_(1), s]);
     
     Omu1_ = Omu1(1:n_,1:n_is_(1));
-    deco.Omu1errors(j) = norm(affine_op(deco.Os,theta_H(mu1))-Omu1_)/norm(Omu1);
+    deco.Omu1errors(j) = norm(affine_op(deco.Os,theta_H(mu1))-Omu1_,"fro")/norm(Omu1,"fro");
     Omu0_ = Omu0(1:n_,1:n_is_(1));
-    deco.Omu0errors(j) = norm(affine_op(deco.Os,theta_H(mu0))-Omu0_)/norm(Omu0);
+    deco.Omu0errors(j) = norm(affine_op(deco.Os,theta_H(mu0))-Omu0_,"fro")/norm(Omu0,"fro");
     if monolithic
         mono.Os = reshape(mono.O,[n_, n_is_(1), s]);
-        mono.Omu1errors(j) = norm(affine_op(mono.Os,theta_H(mu1))-Omu1_)/norm(Omu1);
-        mono.Omu0errors(j) = norm(affine_op(mono.Os,theta_H(mu0))-Omu0_)/norm(Omu0);
+        mono.Omu1errors(j) = norm(affine_op(mono.Os,theta_H(mu1))-Omu1_,"fro")/norm(Omu1,"fro");
+        mono.Omu0errors(j) = norm(affine_op(mono.Os,theta_H(mu0))-Omu0_,"fro")/norm(Omu0,"fro");
     end
 
     %% compute ROM state error
@@ -413,7 +418,7 @@ xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
 legend("show")
-title("compares against Taylor approximation!")
+% title("compares against Taylor approximation!")
 
 figure
 hold on
@@ -430,8 +435,8 @@ legend("show")
 
 figure
 hold on
-semilogy(ns,deco.Omu0errors,'x-','DisplayName',"\mu_0")
-semilogy(ns,deco.Omu1errors,'x-','DisplayName',"\mu_1")
+semilogy(ns,deco.Omu0errors,'x-','DisplayName',"\mu_0 deco")
+semilogy(ns,deco.Omu1errors,'x-','DisplayName',"\mu_1 deco")
 if monolithic
     semilogy(ns,mono.Omu0errors,'+--','DisplayName',"\mu_0 mono")
     semilogy(ns,mono.Omu1errors,'+--','DisplayName',"\mu_1 mono")
@@ -441,7 +446,7 @@ xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
 legend("show")
-title("compares against exact Gaussian!")
+% title("compares against exact Gaussian!")
 
 figure
 hold on
@@ -457,7 +462,7 @@ set(gca, 'YScale', 'log')
 grid on
 legend("show")
 % title("ROM dim and Taylor dim increasing")
-title("ROM dim increasing, Taylor dim = "+num2str(s))
+% title("ROM dim increasing, Taylor dim = "+num2str(s))
 % title("ROM dim =" + num2str(n_) + ", Taylor dim increasing")
 
 %% visualize singular values
