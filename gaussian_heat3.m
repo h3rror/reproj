@@ -419,6 +419,8 @@ set(gca, 'YScale', 'log')
 grid on
 legend("show")
 % title("compares against Taylor approximation!")
+exportgraphics(gcf,"figures_deco/taylor_errors.pdf")
+
 
 figure
 hold on
@@ -432,6 +434,8 @@ xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
 legend("show")
+exportgraphics(gcf,"figures_deco/condition_numbers.pdf")
+
 
 figure
 hold on
@@ -447,6 +451,7 @@ set(gca, 'YScale', 'log')
 grid on
 legend("show")
 % title("compares against exact Gaussian!")
+exportgraphics(gcf,"figures_deco/gaussian_errors.pdf")
 
 figure
 hold on
@@ -464,6 +469,8 @@ legend("show")
 % title("ROM dim and Taylor dim increasing")
 % title("ROM dim increasing, Taylor dim = "+num2str(s))
 % title("ROM dim =" + num2str(n_) + ", Taylor dim increasing")
+exportgraphics(gcf,"figures_deco/rom_state_errors.pdf")
+
 
 %% visualize singular values
 % figure; semilogy(diag(S),'o-')
