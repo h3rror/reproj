@@ -67,7 +67,7 @@ F2_k = @(x1,x2,k) D1*((k.*x1).*(D1*x2));
 % F2X_k = @(X,k) F2_k(X(1,:),X(2,:),k,mu0);
 
 % s_max = N;
-s_max = 18;
+s_max = 18; % original
 % s_max = 6;
 % s_max = 1;
 % s_max = 1;
@@ -329,16 +329,16 @@ for j = 1:nn
         tA2s_(:,:,k) = tA2_;
     end
 
-    % deco.O = hA2s_(:,:)*kron(inv(Theta_H),eye(n_is_))';
+    % % deco.O = hA2s_(:,:)*kron(inv(Theta_H),eye(n_is_))';
     deco.O = hA2s_(:,:)/kron((Theta_H),eye(n_is_))';
-    % O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro")/norm(tO_,"fro");
-    deco.O_errors(j) = norm(tA2s_(:,:)-deco.O,"fro")/norm(tA2s_(:,:), "fro");
-    if monolithic
-        mono.O_errors(j) = norm(tA2s_(:,:)-mono.O,"fro")/norm(tA2s_(:,:), "fro");
-    end
+    % % O_errors(j) = norm(tA1s_(:,:)-hA1s_,"fro")/norm(tO_,"fro");
+    % deco.O_errors(j) = norm(tA2s_(:,:)-deco.O,"fro")/norm(tA2s_(:,:), "fro");
+    % if monolithic
+    %     mono.O_errors(j) = norm(tA2s_(:,:)-mono.O,"fro")/norm(tA2s_(:,:), "fro");
+    % end
 
     deco.Os = reshape(deco.O,[n_, n_is_(1), s]);
-    
+
     Omu1_ = Omu1(1:n_,1:n_is_(1));
     deco.Omu1errors(j) = norm(affine_op(deco.Os,theta_H(mu1))-Omu1_,"fro")/norm(Omu1,"fro");
     Omu0_ = Omu0(1:n_,1:n_is_(1));
@@ -347,6 +347,11 @@ for j = 1:nn
         mono.Os = reshape(mono.O,[n_, n_is_(1), s]);
         mono.Omu1errors(j) = norm(affine_op(mono.Os,theta_H(mu1))-Omu1_,"fro")/norm(Omu1,"fro");
         mono.Omu0errors(j) = norm(affine_op(mono.Os,theta_H(mu0))-Omu0_,"fro")/norm(Omu0,"fro");
+    end
+
+    deco.O_errors(j) = sum(pagenorm(tA2s_-deco.Os,"fro"))/sum(pagenorm(tA2s_, "fro"));
+    if monolithic
+        mono.O_errors(j) = sum(pagenorm(tA2s_-mono.Os,"fro"))/sum(pagenorm(tA2s_, "fro"));
     end
 
     %% compute ROM state error
@@ -417,7 +422,7 @@ ylabel("operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
-legend("show")
+legend("show","Location","southeast")
 % title("compares against Taylor approximation!")
 exportgraphics(gcf,"figures_deco/taylor_errors.pdf")
 
@@ -428,38 +433,38 @@ if monolithic
     semilogy(ns,mono.condsD,'x-', 'LineWidth', 2,'DisplayName',"monolithic")
 end
 semilogy(ns,sum(deco.condsD,2)/s,'x-', 'LineWidth', 2,'DisplayName',"decoupled")
-semilogy(n,sota.condsD, 'x-', 'LineWidth', 2,'DisplayName',"state of the art")
+% semilogy(n,sota.condsD, 'x-', 'LineWidth', 2,'DisplayName',"state of the art")
 ylabel("condition number")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
-legend("show")
+legend("show","Location","east")
 exportgraphics(gcf,"figures_deco/condition_numbers.pdf")
 
 
 figure
 hold on
-semilogy(ns,deco.Omu0errors,'x-','DisplayName',"\mu_0 deco")
-semilogy(ns,deco.Omu1errors,'x-','DisplayName',"\mu_1 deco")
+semilogy(ns,deco.Omu0errors,'x-','DisplayName',"\mu_0 decoupled")
+semilogy(ns,deco.Omu1errors,'x-','DisplayName',"\mu_1 decoupled")
 if monolithic
-    semilogy(ns,mono.Omu0errors,'+--','DisplayName',"\mu_0 mono")
-    semilogy(ns,mono.Omu1errors,'+--','DisplayName',"\mu_1 mono")
+    semilogy(ns,mono.Omu0errors,'+--','DisplayName',"\mu_0 monolithic")
+    semilogy(ns,mono.Omu1errors,'+--','DisplayName',"\mu_1 monolithic")
 end
 ylabel("operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
-legend("show")
+legend("show","Location","southeast")
 % title("compares against exact Gaussian!")
 exportgraphics(gcf,"figures_deco/gaussian_errors.pdf")
 
 figure
 hold on
-semilogy(ns,deco.ROMerror_mu0,'x-','DisplayName',"\mu_0")
-semilogy(ns,deco.ROMerror_mu1,'x-','DisplayName',"\mu_1")
+semilogy(ns,deco.ROMerror_mu0,'x-','DisplayName',"\mu_0 decoupled")
+semilogy(ns,deco.ROMerror_mu1,'x-','DisplayName',"\mu_1 decoupled")
 if monolithic
-    semilogy(ns,mono.ROMerror_mu0,'+--','DisplayName',"\mu_0 mono")
-    semilogy(ns,mono.ROMerror_mu1,'+--','DisplayName',"\mu_1 mono")
+    semilogy(ns,mono.ROMerror_mu0,'+--','DisplayName',"\mu_0 monolithic")
+    semilogy(ns,mono.ROMerror_mu1,'+--','DisplayName',"\mu_1 monolithic")
 end
 ylabel("average ROM state error")
 xlabel("increasing dimension")

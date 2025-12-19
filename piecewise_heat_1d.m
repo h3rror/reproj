@@ -5,23 +5,28 @@ rng(1); % for reproducibility
 
 addpath('source/');
 
-N = 128;
-% N = 16;
+% N = 128;
+N = 16;
 % N = 6;
 
     % monolithic = false
     monolithic = true
 
 
-%% 1D heat equation with piecewise-constant conductivity
+%% 1D heat equation with piecewise-constant conductivity as in https://epubs.siam.org/doi/epdf/10.1137/21M1452810
+
 
 Omega = [-1 1];
-xis = linspace(Omega(1),Omega(2),N)';
+xis = linspace(Omega(1),Omega(2),N+1)';
 dx = (Omega(2)-Omega(1))/N;
 
 d = 4; % dimension  of mu
 mu0 = rand(d,1) + 1; % each entry between 1 and 2
+inds = ceil(eps+d*(xis'-Omega(1))/(Omega(2)-Omega(1)));
+nuplus  = @(mu) mu(inds(2:end));
+numinus = @(mu) mu(inds(1:end-1));
 nu = @(x,mu) mu(ceil(eps+d*(xis'-Omega(1))/(Omega(2)-Omega(1)))); % x argument for compatibility
+% nu = @(x,mu) mu(floor(eps+d*(xis'-Omega(1))/(Omega(2)-Omega(1)))); % x argument for compatibility
 % x0 = -666*ones(size(xis));
 
 % % k0 = @(xis,mu) exp(-(xis-mu).^2);
@@ -39,7 +44,9 @@ figure
 hold on
 % plot(xis,x0, "DisplayName","x_0")
 % plot(xis,k0(xis,mu0), "DisplayName","k_0(\mu_0)")
-plot(xis,nu(x0,mu0), "DisplayName","\nu(x_0,\mu_0)")
+plot(xis,nu([],mu0), "DisplayName","\nu(x_0,\mu_0)")
+% plot(xis,numinus(mu0), "DisplayName","\nu(x_0,\mu_0)")
+% plot(xis,nuplus(mu0), "DisplayName","\nu(x_0,\mu_0)")
 % plot(xis,nu(mu0), "DisplayName","\nu(\mu_0)")
 legend('show')
 
@@ -54,7 +61,21 @@ nt = t_end/dt;
 is = [1];
 I = speye(N);
 
-%% 
+%% finite elements discretization with homogeneous Dirichlet boundary conditions
+%% --> due to Dirichlet BC only N-1 DoFs
+N1 = N-1;
+xis1 = linspace(Omega(1),Omega(2),N)';
+% dx = (Omega(2)-Omega(1))/N;
+
+% damping matrix
+C = 1/6*dx*spdiags([ones(N,1) 4*ones(N,1) ones(N,1)],[-1 0 1],N1,N1);
+% stiffness matrix
+% B = 1/dx*spdiags([-ones(N,1) 2*ones(N,1) ones(N,1)],[-1 0 1],N,N);
+B = @(mu) 1/dx*spdiags([numinus(mu) numinus(mu)+nuplus(mu) nuplus(mu)],[-1 0 1],N1,N1);
+
+% F1_exact = @(x,mu) C\B*(nu([],mu).*x);
+F1_exact = @(x,mu) C\(B(mu).*x);
+
 D = spdiags([-ones(N,1) ones(N,1)], [-1 1],N,N); % first-order central finite difference
 D(1,1) = -1; D(end,end) = 1; % homogeneous Neumann BC
 D = D/(2*dx);
