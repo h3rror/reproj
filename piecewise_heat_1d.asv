@@ -179,7 +179,7 @@ Nu = 0; % input signal dimension
 % s_b = 5;
 s_b = d;
 
-X_b = zeros(N1,nt+1,s_b);
+X_b = zeros(N,nt+1,s_b);
 U_b = zeros(Nu,nt+1,s_b); 
 % X0s = 10*[-sin(pi/2*xs)' sin(3*pi/2*xs)']; % -> make intial condition satisfy BC
 % x0 = -sin(pi/2*xis); % -> make intial condition satisfy BC
@@ -195,8 +195,8 @@ end
 
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b(:,:),'econ');
-% n = 30;
-n = 6;
+n = 30;
+% n = 6;
 % n = 16;
 % n = N;
 % n = s_max;
@@ -225,30 +225,24 @@ sota.O = O;
 sota.condsD = condD;
 
 %% construct intrusive operators
-qA = d;
-tA1s = precompute_rom_operator_param(F1_exact,Vn,1,qA);
+tA1s = precompute_rom_operator_param(F1X,Vn,1,qA);
 % 
 intr.O = tA1s(:,:);
-intr.Os = tA1s;
-
-Omu0 = precompute_rom_operator(@(X) F1_exact(X,mu0),Vn,1);
-Omu1 = precompute_rom_operator(@(X) F1_exact(X,mu1),Vn,1);
-
-tA2s = tA1s; % botch to avoid chaning all names
+intr.Os = tA2s;
 
 % Jn2 = power2kron(n,2);
 % tA2 = precompute_rom_operator(F2X,Vn,2)*Jn2;
 
 % tA2s = precompute_rom_operator_param(@(X,theta) F2X(X),Vn,2,qH);
-% tA2s = precompute_rom_operator_param(@(X,theta) F2X(X,theta),Vn,2,qH);
-% % tA2s = precompute_rom_operator_param(@(X,theta) F2X(X,theta),Vn,2,s_max);
-% 
-% intr.O = tA2s(:,:);
-% intr.Os = tA2s;
-% 
-% Jn2 = power2kron(n,2);
-% Omu0 = precompute_rom_operator(@(X) F2X_exact(X,mu0),Vn,2)*Jn2;
-% Omu1 = precompute_rom_operator(@(X) F2X_exact(X,mu1),Vn,2)*Jn2;
+tA2s = precompute_rom_operator_param(@(X,theta) F2X(X,theta),Vn,2,qH);
+% tA2s = precompute_rom_operator_param(@(X,theta) F2X(X,theta),Vn,2,s_max);
+
+intr.O = tA2s(:,:);
+intr.Os = tA2s;
+
+Jn2 = power2kron(n,2);
+Omu0 = precompute_rom_operator(@(X) F2X_exact(X,mu0),Vn,2)*Jn2;
+Omu1 = precompute_rom_operator(@(X) F2X_exact(X,mu1),Vn,2)*Jn2;
 
 % tA2_2= Vn'*C*kron(Vn,Vn)*Jn2;
 % norm(tA2-tA2_2)
@@ -287,7 +281,7 @@ nn = numel(ns);
 
 B_errors = zeros(nn,1);
 A1_errors = zeros(nn,1);
-% A2_errors = zeros(nn,1);
+A2_errors = zeros(nn,1);
 
 deco.O_errors = zeros(nn,1);
 deco.condsD = zeros(nn,s);
@@ -332,7 +326,7 @@ for j = 1:nn
     % theta_H = @(mu) (mu'-mu0).^(0:s-1);
     theta_H = @(mu) mu';
 
-    Theta_H = theta_H(mus(:,1:s));
+    Theta_H = theta_H(mus(1:s));
     Thetas{1} = Theta_H;
     %%
     n_is_ = n_is(n_,is);
@@ -404,15 +398,13 @@ for j = 1:nn
     % Xmu0_FOM = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu0));
     % Xmu1_FOM = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu0));
 
-    % In_2 = kron2power(n_,2);
+    In_2 = kron2power(n_,2);
     % ROMmu0_step = @(x) x+ dt*Omu0_*In_2*kron(x,x);
     deco.Omu0_ = affine_op(deco.Os,theta_H(mu0));
-    % deco.ROMmu0_step = @(x) x+ dt*deco.Omu0_*In_2*kron(x,x);
-    deco.ROMmu0_step = @(x) x+ dt*deco.Omu0_*x; % linear
+    deco.ROMmu0_step = @(x) x+ dt*deco.Omu0_*In_2*kron(x,x);
     % ROMmu1_step = @(x) x+ dt*Omu1_*In_2*kron(x,x);
     deco.Omu1_ = affine_op(deco.Os,theta_H(mu1));
-    % deco.ROMmu1_step = @(x) x+ dt*deco.Omu1_*In_2*kron(x,x);
-    deco.ROMmu1_step = @(x) x+ dt*deco.Omu1_*x; % linear
+    deco.ROMmu1_step = @(x) x+ dt*deco.Omu1_*In_2*kron(x,x);
 
     Vn_ = Vn(:,1:n_);
     deco.Xmu0 = simulate(Vn_'*x0,dt,nt,deco.ROMmu0_step);
@@ -424,12 +416,10 @@ for j = 1:nn
     if monolithic
         % ROMmu0_step = @(x) x+ dt*Omu0_*In_2*kron(x,x);
         mono.Omu0_ = affine_op(mono.Os,theta_H(mu0));
-        % mono.ROMmu0_step = @(x) x+ dt*mono.Omu0_*In_2*kron(x,x);
-        mono.ROMmu0_step = @(x) x+ dt*mono.Omu0_*x; % linear
+        mono.ROMmu0_step = @(x) x+ dt*mono.Omu0_*In_2*kron(x,x);
         % ROMmu1_step = @(x) x+ dt*Omu1_*In_2*kron(x,x);
         mono.Omu1_ = affine_op(mono.Os,theta_H(mu1));
-        % mono.ROMmu1_step = @(x) x+ dt*mono.Omu1_*In_2*kron(x,x);
-        mono.ROMmu1_step = @(x) x+ dt*mono.Omu1_*x;
+        mono.ROMmu1_step = @(x) x+ dt*mono.Omu1_*In_2*kron(x,x);
 
         Vn_ = Vn(:,1:n_);
         mono.Xmu0 = simulate(Vn_'*x0,dt,nt,mono.ROMmu0_step);
