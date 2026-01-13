@@ -5,23 +5,24 @@ rng(1); % for reproducibility
 
 addpath('source/');
 
-% N = 128;
-N = 16;
+N = 128;
+% N = 16;
 % N = 6;
 
     % monolithic = false
     monolithic = true
 
 
-%% 1D heat equation with piecewise-constant conductivity as in https://epubs.siam.org/doi/epdf/10.1137/21M1452810
+%% 1D heat equation with piecewise-constant conductivity as in https://epubs.siam.org/doi/epdf/10.1137/21M1452810, or rather https://arxiv.org/pdf/2502.10888
 
 
-Omega = [-1 1];
+% Omega = [-1 1];
+Omega = [0 2*pi];
 xis = linspace(Omega(1),Omega(2),N+1)';
 xis_in = xis(2:end-1);
 dx = (Omega(2)-Omega(1))/N;
 
-d = 4; % dimension  of mu
+d = 3; % dimension  of mu
 mu0 = rand(d,1) + 1; % each entry between 1 and 2
 inds = ceil(eps+d*(xis'-Omega(1))/(Omega(2)-Omega(1)));
 nuplus  = @(mu) mu(inds(2:end));
@@ -38,9 +39,10 @@ nu = @(x,mu) mu(ceil(eps+d*(xis'-Omega(1))/(Omega(2)-Omega(1)))); % x argument f
 % nu = @(x,mu) k0(xis,mu).*x; % thermal conductivity 
 % 
 % x0 = -sin(pi/2*xis) + 1; % -> make intial condition satisfy BC
-x0 = -sin(pi/2*xis_in) + 1; % -> make intial condition satisfy BC
+% x0 = -sin(pi/2*xis_in) + 1; % -> make intial condition satisfy BC
 % % x0 = ones(size(xis)) ; % -> make intial condition satisfy BC
 % mu0 = .3;
+x0 = exp(-(xis_in-pi).^2).*sin(xis_in/2);
 
 figure
 hold on
@@ -53,7 +55,8 @@ plot(xis,nu([],mu0), "DisplayName","\nu(x_0,\mu_0)")
 legend('show')
 
 %%
-dt = 1e-4;
+% dt = 1e-4;
+dt = 0.008;
 % t_end = 1;
 t_end = 100*dt;
 % t_end = 10*dt;
@@ -66,22 +69,22 @@ I = speye(N);
 %% finite elements discretization with homogeneous Dirichlet boundary conditions
 %% --> due to Dirichlet BC only N-1 DoFs
 N1 = N-1;
-xis1 = linspace(Omega(1),Omega(2),N)';
+% xis1 = linspace(Omega(1),Omega(2),N)';
 % dx = (Omega(2)-Omega(1))/N;
 
 % damping matrix
 C = 1/6*dx*spdiags([ones(N,1) 4*ones(N,1) ones(N,1)],[-1 0 1],N1,N1);
 % stiffness matrix
 % B = 1/dx*spdiags([-ones(N,1) 2*ones(N,1) ones(N,1)],[-1 0 1],N,N);
-B = @(mu) 1/dx*spdiags([numinus(mu) numinus(mu)+nuplus(mu) nuplus(mu)],[-1 0 1],N1,N1);
+B = @(mu) -1/dx*spdiags([-numinus(mu) numinus(mu)+nuplus(mu) -nuplus(mu)],[-1 0 1],N1,N1);
 
 % F1_exact = @(x,mu) C\B*(nu([],mu).*x);
 F1_exact = @(x,mu) C\(B(mu)*x);
 
-D = spdiags([-ones(N,1) ones(N,1)], [-1 1],N,N); % first-order central finite difference
-D(1,1) = -1; D(end,end) = 1; % homogeneous Neumann BC
-D = D/(2*dx);
-D1 = D;
+% D = spdiags([-ones(N,1) ones(N,1)], [-1 1],N,N); % first-order central finite difference
+% D(1,1) = -1; D(end,end) = 1; % homogeneous Neumann BC
+% D = D/(2*dx);
+% D1 = D;
 
 % F1 = @(x,theta) 0;
 % F1_exact = @(x) D1*(nu(x,k0(mu)).*(D1*x));
@@ -196,8 +199,9 @@ end
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b(:,:),'econ');
 % n = 30;
-n = 6;
+% n = 6;
 % n = 16;
+n = N1;
 % n = N;
 % n = s_max;
 % fac = 12;
