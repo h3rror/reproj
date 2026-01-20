@@ -29,6 +29,7 @@ nu = @(x,mu) k0(xis,mu).*x; % thermal conductivity
 
 % x0 = -sin(pi/2*xis) + 1; % -> make intial condition satisfy BC
 x0 = -sin(pi/2*xis).*exp(-xis.^2) + 1; % -> make intial condition satisfy BC
+% x0 = (xis.^2) + 1; % -> make intial condition satisfy BC
 % x0 = -cos(pi/2*xis) + 1; % 
 % x0 = ones(size(xis)) ; % -> make intial condition satisfy BC
 mu0 = .3;
@@ -65,6 +66,7 @@ D1 = D;
 % F2_exact = @(x1,x2,mu) D1*(nu(x1,mu).*(D1*x2));
 D2 = spdiags([ones(N1,1) -2*ones(N1,1) ones(N1,1)], [-1 0 1],N1,N1); % first-order central finite difference
 D2(1,1) = -1; D2(end,end) = -1; % homogeneous Neumann BC
+D2 = D2/dx^2;
 F2_exact = @(x1,x2,mu) nu(x1,mu).*(D2*x2); % bit botch: nu should be differentiated once
 F2X_exact = @(X,mu) F2_exact(X(:,1),X(:,2),mu); % enable storing variables in one matrix
 
