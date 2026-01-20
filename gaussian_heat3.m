@@ -5,9 +5,10 @@ rng(1); % for reproducibility
 
 addpath('source/');
 
-N = 128;
+N = 128;  % number of mesh cells
 % N = 16;
 % N = 6;
+N1 = N+1; % number of DoFs (Neumann-BC on both sides) 
 
     % monolithic = false
     monolithic = true
@@ -16,7 +17,7 @@ N = 128;
 %% 1D heat equation with temperature-dependent and parameter-dependent (Gaussian) conductivity
 
 Omega = [-1 1];
-xis = linspace(Omega(1),Omega(2),N)';
+xis = linspace(Omega(1),Omega(2),N+1)';
 dx = (Omega(2)-Omega(1))/N;
 
 % k0 = @(xis,mu) exp(-(xis-mu).^2);
@@ -26,7 +27,9 @@ k0_(xis_,mu_) = exp(-.5*(xis_-mu_).^2);
 k0 = matlabFunction(k0_);
 nu = @(x,mu) k0(xis,mu).*x; % thermal conductivity 
 
-x0 = -sin(pi/2*xis) + 1; % -> make intial condition satisfy BC
+% x0 = -sin(pi/2*xis) + 1; % -> make intial condition satisfy BC
+x0 = -sin(pi/2*xis).*exp(-xis.^2) + 1; % -> make intial condition satisfy BC
+% x0 = -cos(pi/2*xis) + 1; % 
 % x0 = ones(size(xis)) ; % -> make intial condition satisfy BC
 mu0 = .3;
 
@@ -40,15 +43,18 @@ legend('show')
 %%
 dt = 1e-4;
 % t_end = 1;
-t_end = 100*dt;
+% t_end = 100*dt;
+% t_end = 0.8;
+t_end = 1;
+% t_end = 1000*dt;
 % t_end = 10*dt;
 nt = t_end/dt;
 
 is = [2];
-I = speye(N);
+I = speye(N1);
 
 %% 
-D = spdiags([-ones(N,1) ones(N,1)], [-1 1],N,N); % first-order central finite difference
+D = spdiags([-ones(N1,1) ones(N1,1)], [-1 1],N1,N1); % first-order central finite difference
 D(1,1) = -1; D(end,end) = 1; % homogeneous Neumann BC
 D = D/(2*dx);
 D1 = D;
@@ -56,7 +62,10 @@ D1 = D;
 % F1 = @(x,theta) 0;
 % F1_exact = @(x) D1*(nu(x,k0(mu)).*(D1*x));
 
-F2_exact = @(x1,x2,mu) D1*(nu(x1,mu).*(D1*x2));
+% F2_exact = @(x1,x2,mu) D1*(nu(x1,mu).*(D1*x2));
+D2 = spdiags([ones(N1,1) -2*ones(N1,1) ones(N1,1)], [-1 0 1],N1,N1); % first-order central finite difference
+D2(1,1) = -1; D2(end,end) = -1; % homogeneous Neumann BC
+F2_exact = @(x1,x2,mu) nu(x1,mu).*(D2*x2); % bit botch: nu should be differentiated once
 F2X_exact = @(X,mu) F2_exact(X(:,1),X(:,2),mu); % enable storing variables in one matrix
 
 % Q: are boundary conditions in D1 correct like this?
@@ -138,7 +147,7 @@ Nu = 0; % input signal dimension
 %% generate ROM basis construction data
 s_b = 5;
 
-X_b = zeros(N,nt+1,s_b);
+X_b = zeros(N1,nt+1,s_b);
 U_b = zeros(Nu,nt+1,s_b); 
 % X0s = 10*[-sin(pi/2*xs)' sin(3*pi/2*xs)']; % -> make intial condition satisfy BC
 % x0 = -sin(pi/2*xis); % -> make intial condition satisfy BC
@@ -169,6 +178,27 @@ Vn = V(:,1:n);
 figure
 semilogy(diag(S)/S(1,1))
 title("singular value decay")
+
+%% state plots
+xis_in = xis;
+k = 1;
+figure
+plot(xis_in,X_b(:,1,k))
+hold on
+plot(xis_in,X_b(:,2,k))
+plot(xis_in,X_b(:,3,k))
+plot(xis_in,X_b(:,5,k))
+plot(xis_in,X_b(:,10,k))
+plot(xis_in,X_b(:,50,k))
+plot(xis_in,X_b(:,100,k))
+plot(xis_in,X_b(:,end,k))
+
+%% plot end states
+figure
+hold on
+for k = 1:s_b
+    plot(xis_in,X_b(:,end,k))
+end
 
 
 %% opinf on ROM basis snapshot data
@@ -424,7 +454,7 @@ set(gca, 'YScale', 'log')
 grid on
 legend("show","Location","southeast")
 % title("compares against Taylor approximation!")
-exportgraphics(gcf,"figures_deco/taylor_errors.pdf")
+exportgraphics(gcf,"figures_gaussian/taylor_errors.pdf")
 
 
 figure
@@ -439,7 +469,7 @@ xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
 legend("show","Location","east")
-exportgraphics(gcf,"figures_deco/condition_numbers.pdf")
+exportgraphics(gcf,"figures_gaussian/condition_numbers.pdf")
 
 
 figure
@@ -456,7 +486,7 @@ set(gca, 'YScale', 'log')
 grid on
 legend("show","Location","southeast")
 % title("compares against exact Gaussian!")
-exportgraphics(gcf,"figures_deco/gaussian_errors.pdf")
+exportgraphics(gcf,"figures_gaussian/gaussian_errors.pdf")
 
 figure
 hold on
@@ -474,7 +504,7 @@ legend("show")
 % title("ROM dim and Taylor dim increasing")
 % title("ROM dim increasing, Taylor dim = "+num2str(s))
 % title("ROM dim =" + num2str(n_) + ", Taylor dim increasing")
-exportgraphics(gcf,"figures_deco/rom_state_errors.pdf")
+exportgraphics(gcf,"figures_gaussian/rom_state_errors.pdf")
 
 
 %% visualize singular values

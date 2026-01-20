@@ -22,7 +22,8 @@ xis = linspace(Omega(1),Omega(2),N+1)';
 xis_in = xis(2:end-1);
 dx = (Omega(2)-Omega(1))/N;
 
-d = 3; % dimension  of mu
+% d = 3; % dimension  of mu
+d = 20;
 mu0 = rand(d,1) + 1; % each entry between 1 and 2
 inds = ceil(eps+d*(xis'-Omega(1))/(Omega(2)-Omega(1)));
 nuplus  = @(mu) mu(inds(2:end));
@@ -55,10 +56,12 @@ plot(xis,nu([],mu0), "DisplayName","\nu(x_0,\mu_0)")
 legend('show')
 
 %%
-% dt = 1e-4;
-dt = 0.008;
+dt = 1e-4;
+% dt = 0.008;
+% dt = 0.001;
 % t_end = 1;
-t_end = 100*dt;
+% t_end = 100*dt;
+t_end = 0.8;
 % t_end = 10*dt;
 nt = t_end/dt;
 
@@ -180,16 +183,19 @@ Nu = 0; % input signal dimension
 
 %% generate ROM basis construction data
 % s_b = 5;
-s_b = d;
+% s_b = d;
 
-X_b = zeros(N1,nt+1,s_b);
-U_b = zeros(Nu,nt+1,s_b); 
+
 % X0s = 10*[-sin(pi/2*xs)' sin(3*pi/2*xs)']; % -> make intial condition satisfy BC
 % x0 = -sin(pi/2*xis); % -> make intial condition satisfy BC
 % mus_b = mus; % so far used
 % mus_b = linspace(-1,1,s_b);
-mus_b = mus;
+% mus_b = mus;
+mus_b = rand(d,5) + 1; % each entry between 1 and 2
+s_b = 5;
 
+X_b = zeros(N1,nt+1,s_b);
+U_b = zeros(Nu,nt+1,s_b); 
 
 for k = 1:s_b
     mu = mus_b(:,k);
@@ -198,10 +204,10 @@ end
 
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b(:,:),'econ');
-% n = 30;
+n = 30;
 % n = 6;
 % n = 16;
-n = N1;
+% n = N1;
 % n = N;
 % n = s_max;
 % fac = 12;
@@ -215,6 +221,26 @@ Vn = V(:,1:n);
 figure
 semilogy(diag(S)/S(1,1))
 title("singular value decay")
+
+%% state plots
+k = 1;
+figure
+plot(xis_in,X_b(:,1,k))
+hold on
+plot(xis_in,X_b(:,2,k))
+plot(xis_in,X_b(:,3,k))
+plot(xis_in,X_b(:,5,k))
+plot(xis_in,X_b(:,10,k))
+plot(xis_in,X_b(:,50,k))
+plot(xis_in,X_b(:,100,k))
+plot(xis_in,X_b(:,end,k))
+
+%% plot end states
+figure
+hold on
+for k = 1:s_b
+    plot(xis_in,X_b(:,end,k))
+end
 
 
 %% opinf on ROM basis snapshot data
@@ -476,9 +502,9 @@ ylabel("operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
-legend("show")
+legend("show","Location","southeast")
 % title("compares against Taylor approximation!")
-exportgraphics(gcf,"figures_deco/taylor_errors.pdf")
+exportgraphics(gcf,"figures_piecewise/taylor_errors.pdf")
 
 
 figure
@@ -487,38 +513,38 @@ if monolithic
     semilogy(ns,mono.condsD,'x-', 'LineWidth', 2,'DisplayName',"monolithic")
 end
 semilogy(ns,sum(deco.condsD,2)/s,'x-', 'LineWidth', 2,'DisplayName',"decoupled")
-semilogy(n,sota.condsD, 'x-', 'LineWidth', 2,'DisplayName',"state of the art")
+% semilogy(n,sota.condsD, 'x-', 'LineWidth', 2,'DisplayName',"state of the art")
 ylabel("condition number")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
-legend("show")
-exportgraphics(gcf,"figures_deco/condition_numbers.pdf")
+legend("show","Location","east")
+exportgraphics(gcf,"figures_piecewise/condition_numbers.pdf")
 
 
 figure
 hold on
-semilogy(ns,deco.Omu0errors,'x-','DisplayName',"\mu_0 deco")
-semilogy(ns,deco.Omu1errors,'x-','DisplayName',"\mu_1 deco")
+semilogy(ns,deco.Omu0errors,'x-','DisplayName',"\mu_0 decoupled")
+semilogy(ns,deco.Omu1errors,'x-','DisplayName',"\mu_1 decoupled")
 if monolithic
-    semilogy(ns,mono.Omu0errors,'+--','DisplayName',"\mu_0 mono")
-    semilogy(ns,mono.Omu1errors,'+--','DisplayName',"\mu_1 mono")
+    semilogy(ns,mono.Omu0errors,'+--','DisplayName',"\mu_0 monolithic")
+    semilogy(ns,mono.Omu1errors,'+--','DisplayName',"\mu_1 monolithic")
 end
 ylabel("operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
-legend("show")
+legend("show","Location","southeast")
 % title("compares against exact Gaussian!")
-exportgraphics(gcf,"figures_deco/gaussian_errors.pdf")
+exportgraphics(gcf,"figures_piecewise/gaussian_errors.pdf")
 
 figure
 hold on
-semilogy(ns,deco.ROMerror_mu0,'x-','DisplayName',"\mu_0")
-semilogy(ns,deco.ROMerror_mu1,'x-','DisplayName',"\mu_1")
+semilogy(ns,deco.ROMerror_mu0,'x-','DisplayName',"\mu_0 decoupled")
+semilogy(ns,deco.ROMerror_mu1,'x-','DisplayName',"\mu_1 decoupled")
 if monolithic
-    semilogy(ns,mono.ROMerror_mu0,'+--','DisplayName',"\mu_0 mono")
-    semilogy(ns,mono.ROMerror_mu1,'+--','DisplayName',"\mu_1 mono")
+    semilogy(ns,mono.ROMerror_mu0,'+--','DisplayName',"\mu_0 monolithic")
+    semilogy(ns,mono.ROMerror_mu1,'+--','DisplayName',"\mu_1 monolithic")
 end
 ylabel("average ROM state error")
 xlabel("increasing dimension")
@@ -528,7 +554,7 @@ legend("show")
 % title("ROM dim and Taylor dim increasing")
 % title("ROM dim increasing, Taylor dim = "+num2str(s))
 % title("ROM dim =" + num2str(n_) + ", Taylor dim increasing")
-exportgraphics(gcf,"figures_deco/rom_state_errors.pdf")
+exportgraphics(gcf,"figures_piecewise/rom_state_errors.pdf")
 
 
 %% visualize singular values
