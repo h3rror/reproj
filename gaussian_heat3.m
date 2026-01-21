@@ -28,7 +28,8 @@ k0 = matlabFunction(k0_);
 nu = @(x,mu) k0(xis,mu).*x; % thermal conductivity 
 
 % x0 = -sin(pi/2*xis) + 1; % -> make intial condition satisfy BC
-x0 = -sin(pi/2*xis).*exp(-xis.^2) + 1; % -> make intial condition satisfy BC
+x0 = -sin(pi/2*xis) + 2; % -> make intial condition satisfy BC
+% x0 = -sin(pi/2*xis).*exp(-xis.^2) + 1; % -> make intial condition satisfy BC
 % x0 = (xis.^2) + 1; % -> make intial condition satisfy BC
 % x0 = -cos(pi/2*xis) + 1; % 
 % x0 = ones(size(xis)) ; % -> make intial condition satisfy BC
