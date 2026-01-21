@@ -32,10 +32,21 @@ dx = (Omega(2)-Omega(1))/N;
 
 d = 1; % dimension  of mu
 mu0 = 1.3*pi;
-nu = @(xis,mu) exp(-.5*(xis-mu).^2) + 1;
-nuplus = @(mu) exp(-.5*(xis(2:end)-mu).^2) + 1;
-numinus = @(mu) exp(-.5*(xis(1:end-1)-mu).^2) + 1;
+% nu = @(x,mu) (exp(-.5*(xis-mu).^2)+1).*[0;x;0];
+% nuplus = @(x,mu) exp(-.5*(xis(2:end)-mu).^2).*x + 1;
+% numinus = @(x,mu) exp(-.5*(xis(1:end-1)-mu).^2).*x + 1;
+I = eye(N+1);
+Iplus = I(2:end,:);
+Iminus = I(1:end-1,:);
+% nuplus = @(x,mu) Iplus*nu(x,mu);
+% numinus = @(x,mu) Iminus*nu(x,mu);
 
+syms xis_ mu_;
+k0_(xis_,mu_) = exp(-.5*(xis_-mu_).^2)+1;
+k0 = matlabFunction(k0_);
+nu = @(x,mu) k0(xis,mu).*[0;x;0]; % thermal conductivity 
+
+nu_k = @(x,k) k.*[0;x;0];
 
 % nu = @(x,mu) mu(floor(eps+d*(xis'-Omega(1))/(Omega(2)-Omega(1)))); % x argument for compatibility
 % x0 = -666*ones(size(xis));
@@ -55,10 +66,10 @@ x0 = exp(-(xis_in-pi).^2).*sin(xis_in/2);
 
 figure
 hold on
-% plot(xis,x0, "DisplayName","x_0")
+plot(xis,[0;x0;0], "DisplayName","x_0")
 % plot(xis,k0(xis,mu0), "DisplayName","k_0(\mu_0)")
 % plot(xis,nu([],mu0), "DisplayName","\nu(x_0,\mu_0)")
-plot(xis,nu(xis,mu0), "DisplayName","\nu(x_0,\mu_0)")
+plot(xis,nu(x0,mu0), "DisplayName","\nu(x_0,\mu_0)")
 % plot(xis,numinus(mu0), "DisplayName","\nu(x_0,\mu_0)")
 % plot(xis,nuplus(mu0), "DisplayName","\nu(x_0,\mu_0)")
 % plot(xis,nu(mu0), "DisplayName","\nu(\mu_0)")
@@ -74,8 +85,7 @@ t_end = 0.8;
 % t_end = 10*dt;
 nt = t_end/dt;
 
-% is = [2];
-is = [1];
+is = [2];
 I = speye(N);
 
 %% finite elements discretization with homogeneous Dirichlet boundary conditions
@@ -88,10 +98,18 @@ N1 = N-1;
 C = 1/6*dx*spdiags([ones(N,1) 4*ones(N,1) ones(N,1)],[-1 0 1],N1,N1);
 % stiffness matrix
 % B = 1/dx*spdiags([-ones(N,1) 2*ones(N,1) ones(N,1)],[-1 0 1],N,N);
-B = @(mu) -1/dx*spdiags([-numinus(mu) numinus(mu)+nuplus(mu) -nuplus(mu)],[-1 0 1],N1,N1);
+% B = @(mu) -1/dx*spdiags([-numinus(mu) numinus(mu)+nuplus(mu) -nuplus(mu)],[-1 0 1],N1,N1);
+% B = @(x,mu) -1/dx*spdiags([-numinus(x,mu) numinus(x,mu)+nuplus(x,mu) -nuplus(x,mu)],[-1 0 1],N1,N1);
+B = @(x,mu) -1/dx*spdiags([-Iminus*nu(x,mu) (Iminus+Iplus)*nu(x,mu) -Iplus*nu(x,mu)],[-1 0 1],N1,N1);
 
 % F1_exact = @(x,mu) C\B*(nu([],mu).*x);
-F1_exact = @(x,mu) C\(B(mu)*x);
+% F1_exact = @(x,mu) C\(B(x,mu)*x);
+F2_exact = @(x1,x2,mu) C\(B(x1,mu)*x2);
+F2X_exact = @(X,mu) F2_exact(X(:,1),X(:,2),mu); % enable storing variables in one matrix
+
+B_k = @(x,k) -1/dx*spdiags([-Iminus*nu_k(x,k) (Iminus+Iplus)*nu_k(x,k) -Iplus*nu_k(x,k)],[-1 0 1],N1,N1);
+F2_k = @(x1,x2,k) C\(B_k(x1,k)*x2);
+
 
 % D = spdiags([-ones(N,1) ones(N,1)], [-1 1],N,N); % first-order central finite difference
 % D(1,1) = -1; D(end,end) = 1; % homogeneous Neumann BC
@@ -112,18 +130,18 @@ F1_exact = @(x,mu) C\(B(mu)*x);
 % F2X_k = @(X,k) F2_k(X(1,:),X(2,:),k,mu0);
 
 % % s_max = N;
-% s_max = 18;
+s_max = 18;
 % % s_max = 6;
 % % s_max = 1;
 % % s_max = 1;
 % % s_max = 30;
 % % s_max = 21;
-% mus = linspace(-1,1,s_max);
-% mus = flip(mus)
+mus = linspace(Omega(1),Omega(2),s_max);
+mus = flip(mus)
 % % mus = mu0
 
-s_max = d;
-mus = ones(d,d) + eye(d);
+% s_max = d;
+% mus = ones(d,d) + eye(d);
 
 %% 1) simple setting: fixed mu
 % F2 = @(x1,x2,theta) F2_exact(x1,x2,mu0);
@@ -138,42 +156,43 @@ mus = ones(d,d) + eye(d);
 
 %% 2) general setting: arbitrary qH
 
-% k1_ = diff(k0_,xis_);
-% % k1 = matlabFunction(k1_);
-% k1 = eval(k1_(xis,mu0));
+k1_ = diff(k0_,xis_);
+% k1 = matlabFunction(k1_);
+k1 = eval(k1_(xis,mu0));
 
 qH = s_max;
 s = qH;
 % mus = (0:s-1)+mu0;
 % mus = linspace(-1,1,s);
-% % % theta_H = @(mu) (mu'-mu0).^(0:s-1);
-theta_H = @(mu) mu';
+theta_H = @(mu) (mu'-mu0).^(0:s-1);
+% theta_H = @(mu) mu';
 
 Theta_H = theta_H(mus(1:s));
 Thetas{1} = Theta_H;
 
 % F2 = @(x1,x2,theta) sum(theta'.*[F2_k(x1,x2,k0(xis,mu0)) F2_k(x1,x2,k1)],2);
-% [F2,kps,k_sum] = F2_taylor_approx(k0_,mu_,qH,F2_k,xis,mu0);
+[F2,kps,k_sum] = F2_taylor_approx(k0_,mu_,qH,F2_k,xis,mu0);
 % F2 = F2_exact;
-% F2X = @(X,theta) F2(X(:,1),X(:,2),theta); % enable storing variables in one matrix
+F2X = @(X,theta) F2(X(:,1),X(:,2),theta); % enable storing variables in one matrix
 
 %% some plots 
 figure
 hold on
-plot(xis_in,F1_exact(x0,mu0), "DisplayName","exact")
-% plot(xis,F2_exact(x0,x0,mu0), "DisplayName","exact")
-% plot(xis,F2X([x0,x0],theta_H(mu0)),'--',"DisplayName","Taylor approx "+qH)
+% plot(xis_in,F1_exact(x0,mu0), "DisplayName","exact")
+plot(xis_in,F2_exact(x0,x0,mu0), "DisplayName","exact")
+plot(xis_in,F2X([x0,x0],theta_H(mu0)),'--',"DisplayName","Taylor approx "+qH)
 title("RHS evaluated at x_0 and  \mu_0")
 legend("show")
 
 % mu1 = -1;
-mu1 = 2 - mu0 + 1; 
+% mu1 = 2 - mu0 + 1; 
 % mu1 = -mu0;
+mu1 = mus(end);
 figure
 hold on
-% plot(xis,F2_exact(x0,x0,mu1), "DisplayName","exact")
-plot(xis_in,F1_exact(x0,mu1), "DisplayName","exact")
-% plot(xis,F2X([x0,x0],theta_H(mu1)),'--',"DisplayName","Taylor approx "+qH)
+plot(xis_in,F2_exact(x0,x0,mu1), "DisplayName","exact")
+% plot(xis_in,F1_exact(x0,mu1), "DisplayName","exact")
+plot(xis_in,F2X([x0,x0],theta_H(mu1)),'--',"DisplayName","Taylor approx "+qH)
 title("RHS evaluated at x_0 and \mu="+ num2str(mu1))
 legend("show")
 
@@ -181,8 +200,8 @@ legend("show")
 
 % f = @(x,u,mu) F2(x,x,theta_H(mu)); % previously used
 
-% f = @(x,u,mu) F2_exact(x,x,mu);
-f = @(x,u,mu) F1_exact(x,mu);
+f = @(x,u,mu) F2_exact(x,x,mu);
+% f = @(x,u,mu) F1_exact(x,mu);
 % F2_exact = @(x1,x2,mu) D1*(nu(x1,mu).*(D1*x2));
 
 
@@ -216,8 +235,8 @@ end
 
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b(:,:),'econ');
-n = 30;
-% n = 6;
+% n = 30;
+n = 6;
 % n = 16;
 % n = N1;
 % n = N;
@@ -267,30 +286,30 @@ sota.O = O;
 sota.condsD = condD;
 
 %% construct intrusive operators
-qA = d;
-tA1s = precompute_rom_operator_param(F1_exact,Vn,1,qA);
+% qA = d;
+% tA1s = precompute_rom_operator_param(F1_exact,Vn,1,qA);
 % 
-intr.O = tA1s(:,:);
-intr.Os = tA1s;
+% intr.O = tA1s(:,:);
+% intr.Os = tA1s;
 
-Omu0 = precompute_rom_operator(@(X) F1_exact(X,mu0),Vn,1);
-Omu1 = precompute_rom_operator(@(X) F1_exact(X,mu1),Vn,1);
+% Omu0 = precompute_rom_operator(@(X) F1_exact(X,mu0),Vn,1);
+% Omu1 = precompute_rom_operator(@(X) F1_exact(X,mu1),Vn,1);
 
-tA2s = tA1s; % botch to avoid chaning all names
+% tA2s = tA1s; % botch to avoid chaning all names
 
 % Jn2 = power2kron(n,2);
 % tA2 = precompute_rom_operator(F2X,Vn,2)*Jn2;
 
 % tA2s = precompute_rom_operator_param(@(X,theta) F2X(X),Vn,2,qH);
-% tA2s = precompute_rom_operator_param(@(X,theta) F2X(X,theta),Vn,2,qH);
+tA2s = precompute_rom_operator_param(@(X,theta) F2X(X,theta),Vn,2,qH);
 % % tA2s = precompute_rom_operator_param(@(X,theta) F2X(X,theta),Vn,2,s_max);
 % 
-% intr.O = tA2s(:,:);
-% intr.Os = tA2s;
-% 
-% Jn2 = power2kron(n,2);
-% Omu0 = precompute_rom_operator(@(X) F2X_exact(X,mu0),Vn,2)*Jn2;
-% Omu1 = precompute_rom_operator(@(X) F2X_exact(X,mu1),Vn,2)*Jn2;
+intr.O = tA2s(:,:);
+intr.Os = tA2s;
+
+Jn2 = power2kron(n,2);
+Omu0 = precompute_rom_operator(@(X) F2X_exact(X,mu0),Vn,2)*Jn2;
+Omu1 = precompute_rom_operator(@(X) F2X_exact(X,mu1),Vn,2)*Jn2;
 
 % tA2_2= Vn'*C*kron(Vn,Vn)*Jn2;
 % norm(tA2-tA2_2)
@@ -328,8 +347,8 @@ ss = 1:s_max;
 nn = numel(ns);
 
 B_errors = zeros(nn,1);
-A1_errors = zeros(nn,1);
-% A2_errors = zeros(nn,1);
+% A1_errors = zeros(nn,1);
+A2_errors = zeros(nn,1);
 
 deco.O_errors = zeros(nn,1);
 deco.condsD = zeros(nn,s);
@@ -371,8 +390,8 @@ for j = 1:nn
     s = qH;
     % s = ns(j); % botch
     % s = ss(j); % botch
-    % theta_H = @(mu) (mu'-mu0).^(0:s-1);
-    theta_H = @(mu) mu';
+    theta_H = @(mu) (mu'-mu0).^(0:s-1);
+    % theta_H = @(mu) mu';
 
     Theta_H = theta_H(mus(:,1:s));
     Thetas{1} = Theta_H;
@@ -446,15 +465,15 @@ for j = 1:nn
     % Xmu0_FOM = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu0));
     % Xmu1_FOM = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu0));
 
-    % In_2 = kron2power(n_,2);
+    In_2 = kron2power(n_,2);
     % ROMmu0_step = @(x) x+ dt*Omu0_*In_2*kron(x,x);
     deco.Omu0_ = affine_op(deco.Os,theta_H(mu0));
-    % deco.ROMmu0_step = @(x) x+ dt*deco.Omu0_*In_2*kron(x,x);
-    deco.ROMmu0_step = @(x) x+ dt*deco.Omu0_*x; % linear
+    deco.ROMmu0_step = @(x) x+ dt*deco.Omu0_*In_2*kron(x,x);
+    % deco.ROMmu0_step = @(x) x+ dt*deco.Omu0_*x; % linear
     % ROMmu1_step = @(x) x+ dt*Omu1_*In_2*kron(x,x);
     deco.Omu1_ = affine_op(deco.Os,theta_H(mu1));
-    % deco.ROMmu1_step = @(x) x+ dt*deco.Omu1_*In_2*kron(x,x);
-    deco.ROMmu1_step = @(x) x+ dt*deco.Omu1_*x; % linear
+    deco.ROMmu1_step = @(x) x+ dt*deco.Omu1_*In_2*kron(x,x);
+    % deco.ROMmu1_step = @(x) x+ dt*deco.Omu1_*x; % linear
 
     Vn_ = Vn(:,1:n_);
     deco.Xmu0 = simulate(Vn_'*x0,dt,nt,deco.ROMmu0_step);
@@ -466,12 +485,12 @@ for j = 1:nn
     if monolithic
         % ROMmu0_step = @(x) x+ dt*Omu0_*In_2*kron(x,x);
         mono.Omu0_ = affine_op(mono.Os,theta_H(mu0));
-        % mono.ROMmu0_step = @(x) x+ dt*mono.Omu0_*In_2*kron(x,x);
-        mono.ROMmu0_step = @(x) x+ dt*mono.Omu0_*x; % linear
+        mono.ROMmu0_step = @(x) x+ dt*mono.Omu0_*In_2*kron(x,x);
+        % mono.ROMmu0_step = @(x) x+ dt*mono.Omu0_*x; % linear
         % ROMmu1_step = @(x) x+ dt*Omu1_*In_2*kron(x,x);
         mono.Omu1_ = affine_op(mono.Os,theta_H(mu1));
-        % mono.ROMmu1_step = @(x) x+ dt*mono.Omu1_*In_2*kron(x,x);
-        mono.ROMmu1_step = @(x) x+ dt*mono.Omu1_*x;
+        mono.ROMmu1_step = @(x) x+ dt*mono.Omu1_*In_2*kron(x,x);
+        % mono.ROMmu1_step = @(x) x+ dt*mono.Omu1_*x;
 
         Vn_ = Vn(:,1:n_);
         mono.Xmu0 = simulate(Vn_'*x0,dt,nt,mono.ROMmu0_step);
