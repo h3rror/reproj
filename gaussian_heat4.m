@@ -130,8 +130,9 @@ F2_k = @(x1,x2,k) C\(B_k(x1,k)*x2);
 % F2X_k = @(X,k) F2_k(X(1,:),X(2,:),k,mu0);
 
 % % s_max = N;
-% s_max = 18;
-s_max = 6;
+% s_max = 18; --> leads to NaNs
+s_max = 17;
+% s_max = 6;
 % s_max = 2;
 % % s_max = 1;
 % % s_max = 30;
@@ -170,24 +171,24 @@ theta_H = @(mu) (mu'-mu0).^(0:s-1);
 Theta_H = theta_H(mus(1:s));
 Thetas{1} = Theta_H;
 
-
-figure
-vis_mus = xis;
-plot(vis_mus,k0(pi,vis_mus))
-hold on
-xi0 = pi;
-% for i = 1:qH
-% i = 2;
-% for i = 2:qH
-for i = qH:qH
-    ki_(xis_,mu_) = taylor(k0_(xis_,mu_),mu_,ExpansionPoint=mu0,Order=i);
-    % ki_ = taylor(k0_(xi0,mu_),mu_,ExpansionPoint=mu0,Order=i);
-    ki = matlabFunction(ki_);
-    plot(vis_mus,ki(xi0,vis_mus))
-end
-legend("show")
-ylim([0 3])
-
+%% check Taylor convergence
+% figure
+% vis_mus = xis;
+% plot(vis_mus,k0(pi,vis_mus))
+% hold on
+% xi0 = pi;
+% % for i = 1:qH
+% % i = 2;
+% % for i = 2:qH
+% for i = qH:qH
+%     ki_(xis_,mu_) = taylor(k0_(xis_,mu_),mu_,ExpansionPoint=mu0,Order=i);
+%     % ki_ = taylor(k0_(xi0,mu_),mu_,ExpansionPoint=mu0,Order=i);
+%     ki = matlabFunction(ki_);
+%     plot(vis_mus,ki(xi0,vis_mus))
+% end
+% legend("show")
+% ylim([0 3])
+%%
 
 % F2 = @(x1,x2,theta) sum(theta'.*[F2_k(x1,x2,k0(xis,mu0)) F2_k(x1,x2,k1)],2);
 [F2,kps,k_sum] = F2_taylor_approx(k0_,mu_,qH,F2_k,xis,mu0);
@@ -254,8 +255,8 @@ end
 
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b(:,:),'econ');
-% n = 30;
-n = 6;
+n = 30;
+% n = 6;
 % n = 16;
 % n = N1;
 % n = N;
