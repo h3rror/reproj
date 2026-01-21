@@ -179,7 +179,7 @@ xi0 = pi;
 % for i = 1:qH
 % i = 2;
 % for i = 2:qH
-for i = qH:qH
+% for i = qH:qH
     ki_(xis_,mu_) = taylor(k0_(xis_,mu_),mu_,ExpansionPoint=mu0,Order=i);
     % ki_ = taylor(k0_(xi0,mu_),mu_,ExpansionPoint=mu0,Order=i);
     ki = matlabFunction(ki_);
