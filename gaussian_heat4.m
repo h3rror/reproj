@@ -239,7 +239,8 @@ Nu = 0; % input signal dimension
 % mus_b = mus; % so far used
 
 s_b = 5;
-mus_b = linspace(-1,1,s_b);
+% mus_b = linspace(-1,1,s_b);
+mus_b = linspace(Omega(1),Omega(2),s_b);
 
 % mus_b = mus;
 % mus_b = rand(d,5) + 1; % each entry between 1 and 2
@@ -555,7 +556,7 @@ set(gca, 'YScale', 'log')
 grid on
 legend("show","Location","southeast")
 % title("compares against Taylor approximation!")
-exportgraphics(gcf,"figures_piecewise/taylor_errors.pdf")
+exportgraphics(gcf,"figures_gaussian/taylor_errors.pdf")
 
 
 figure
@@ -570,7 +571,7 @@ xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
 legend("show","Location","east")
-exportgraphics(gcf,"figures_piecewise/condition_numbers.pdf")
+exportgraphics(gcf,"figures_gaussian/condition_numbers.pdf")
 
 
 figure
@@ -587,7 +588,7 @@ set(gca, 'YScale', 'log')
 grid on
 legend("show","Location","southeast")
 % title("compares against exact Gaussian!")
-exportgraphics(gcf,"figures_piecewise/gaussian_errors.pdf")
+exportgraphics(gcf,"figures_gaussian/gaussian_errors.pdf")
 
 figure
 hold on
@@ -605,7 +606,7 @@ legend("show")
 % title("ROM dim and Taylor dim increasing")
 % title("ROM dim increasing, Taylor dim = "+num2str(s))
 % title("ROM dim =" + num2str(n_) + ", Taylor dim increasing")
-exportgraphics(gcf,"figures_piecewise/rom_state_errors.pdf")
+exportgraphics(gcf,"figures_gaussian/rom_state_errors.pdf")
 
 
 %% visualize singular values

@@ -111,6 +111,13 @@ X_POD = X_b(:,1:2001);
 n = 7;
 Vn = V(:,1:n);
 
+%% plot POD modes
+figure; hold on
+for i = 1:n
+% for i = n:n
+    plot(Vn(:,i))
+end
+
 %% generate rank-sufficient snapshot data
 
 tX0_pure = rank_suff_basis(n,is);

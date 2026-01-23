@@ -42,14 +42,16 @@ D = -2*diag(ones(N,1)) + diag(ones(N-1,1),1) + diag(ones(N-1,1),-1);
 D(N,1) = 1;
 D(1,N) = 1;
 D = D/dx^2;
+mu = 0.1;
 
-F1 = @(x) D*x;
+F1 = @(x) mu*D*x;
 
 %% 
 F1X = @(X) F1(X(:,1));         % same as F1 but with consistent notation
 F2X = @(X) F2(X(:,1),X(:,2));  % enable storing variables in one matrix
 
 Nu = 0; % input signal dimension
+
 
 f = @(x,u) F1(x) + F2(x,x);
 
@@ -58,7 +60,8 @@ f = @(x,u) F1(x) + F2(x,x);
 X_b = zeros(N,nt+1);
 U_b = zeros(Nu,nt+1); 
 % X0s = 10*[-sin(pi/2*xs)' sin(3*pi/2*xs)']; % -> make intial condition satisfy BC
-x0 = -sin(pi/2*xs)' ; % -> make intial condition satisfy BC
+% x0 = -sin(pi/2*xs)' ; % -> make intial condition satisfy BC
+x0 = -sin(pi*xs)' ; % -> make intial condition satisfy BC
 
 t = 0;
 x = x0;
@@ -76,11 +79,33 @@ for i=1:nt
     % U_b(:,i+1) = u;
 end
 
+%% state plots
+figure; hold on
+plot(X_b(:,1))
+plot(X_b(:,2))
+plot(X_b(:,3))
+plot(X_b(:,5))
+plot(X_b(:,10))
+plot(X_b(:,100))
+plot(X_b(:,end))
+
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b,'econ');
-% n = 10;
-n = 0;
+n = 10;
+% n = 0;
 Vn = V(:,1:n);
+
+%% singular value decay
+figure
+semilogy(diag(S)/S(1,1))
+title("singular value decay")
+
+%% plot POD modes
+figure; hold on
+for i = 1:n
+% for i = n:n
+    plot(Vn(:,i))
+end
 
 %% construct intrusive operators
 tA1 = precompute_rom_operator(F1X,Vn,1);
@@ -134,6 +159,9 @@ t_energy_error = zeros(nn,1);
 
 h_symmetry_error = zeros(nn,1);
 t_symmetry_error = zeros(nn,1);
+
+h_ROM_state_error = zeros(nn,1);
+t_ROM_state_error = zeros(nn,1);
 
 for j = 1:nn
     n_ = ns(j);
@@ -189,6 +217,37 @@ for j = 1:nn
     grid on
     legend("intrusive","exactOpInf","Location","northwest","Interpreter","latex", "FontSize",12)
 
+    %% compute avg ROM state error
+    Vn_ = Vn(:,1:n_);
+    tf = @(tx,u) tA1_*tx + tA2_*uniquepower(tx,2);
+    hf = @(hx,u) hA1_*hx + hA2_*uniquepower(hx,2);
+
+    tX_b = zeros(n_,nt+1);
+    hX_b = zeros(n_,nt+1);
+    % U_b = zeros(Nu,nt+1); 
+    t = 0;
+    tx = Vn_'*x0;
+    hx = Vn_'*x0;
+    % u = U_b(:,1);
+
+    tX_b(:,1) = tx;
+    hX_b(:,1) = hx;
+    % U_b(:,1) = u;
+
+    for i=1:nt
+        tx = single_step(tx,[],dt,tf);
+        hx = single_step(hx,[],dt,hf);
+
+        t = t + dt;
+        % u = U_b(:,i);
+
+        tX_b(:,i+1) = tx;
+        hX_b(:,i+1) = hx;
+        % U_b(:,i+1) = u;
+    end
+    
+    t_ROM_state_error(j) = norm(Vn_*tX_b - X_b,"fro")/norm(X_b,"fro");
+    h_ROM_state_error(j) = norm(Vn_*hX_b - X_b,"fro")/norm(X_b,"fro");
 end
 
 savefig("figures/eig_vals.fig")
@@ -232,6 +291,21 @@ ylim([1e-17 1e-15])
 
 savefig("figures/symmetry_violation.fig")
 exportgraphics(gcf,"figures/symmetry_violation.pdf")
+
+figure
+hold on
+semilogy(ns,h_ROM_state_error,'x-', 'LineWidth', 2,'DisplayName',"exactOpInf", "MarkerSize",10)
+semilogy(ns,t_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive", "MarkerSize",10)
+ylabel("avg rel error of states","Interpreter","latex", "FontSize",15)
+xlabel("ROM dimension","Interpreter","latex", "FontSize",15)
+set(gca, 'YScale', 'log')
+grid on
+legend("show","Interpreter","latex", "FontSize",12)
+legend("Location","northwest")
+% ylim([1e-17 1e-15])
+
+savefig("figures/rom_state_error.fig")
+exportgraphics(gcf,"figures/rom_state_error.pdf")
 
 
 %% visualize singular values

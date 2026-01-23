@@ -83,7 +83,6 @@ end
 n = 30;
 Vn = V(:,1:n);
 
-%% plot POD modes
 figure; hold on
 % for i = 1:n
 for i = n:n
