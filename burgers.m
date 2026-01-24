@@ -42,7 +42,8 @@ D = -2*diag(ones(N,1)) + diag(ones(N-1,1),1) + diag(ones(N-1,1),-1);
 D(N,1) = 1;
 D(1,N) = 1;
 D = D/dx^2;
-mu = 0.1;
+% mu = 0.1;
+mu = 1;
 
 F1 = @(x) mu*D*x;
 
@@ -61,7 +62,7 @@ X_b = zeros(N,nt+1);
 U_b = zeros(Nu,nt+1); 
 % X0s = 10*[-sin(pi/2*xs)' sin(3*pi/2*xs)']; % -> make intial condition satisfy BC
 % x0 = -sin(pi/2*xs)' ; % -> make intial condition satisfy BC
-x0 = -sin(pi*xs)' ; % -> make intial condition satisfy BC
+x0 = -sin(pi*xs)' ; % -> make intial condition satisfy periodic BC
 
 t = 0;
 x = x0;

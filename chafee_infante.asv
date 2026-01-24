@@ -9,6 +9,8 @@ N = 128;
 % N = 12;
 % N = 64;
 
+dx = 1/N;
+
 %% Chafee-Infante as in https://doi.org/10.1137/19M1292448 combined with 
 % setup of Allen-Cahn in https://doi.org/10.1016/j.cma.2022.115836
 
@@ -21,7 +23,7 @@ nt = round(t_end/dt);
 
 is = [1 2 3];
 A1 = diag(ones(N-1,1),-1) -eye(N);
-A1 = (A1+A1')*N^2;
+A1 = (A1+A1')/dx^2;
 A1 = A1 + eye(N); % additional linear term missing in Allen-Cahn description
 % JN3 = power2kron(N,3); % J_N^(3)
 % A3 = vecwise_kron(eye(N),3)';
@@ -38,10 +40,15 @@ A1(1,1) = -1/dt;
 % A3(1,:) = 0;
 BC(1,:) = 0;
 
-% ddt x(1,t) = 0;
-A1(end,:) = 0;
-% A3(end,:) = 0;
-BC(end,:) = 0;
+% % % ddt x(1,t) = 0; % wrong !!!
+% % A1(end,:) = 0;
+% % % A3(end,:) = 0;
+% % BC(end,:) = 0;
+
+% ddxi x(1,t) = 0
+A1(end,end) = 
+
+
 
 F1 = @(x1) A1*x1;
 F3 = @(x1,x2,x3) -BC*(x1.*x2.*x3);
@@ -77,15 +84,32 @@ for i=1:nt
     X_b(:,i+1) = x;
     U_b(:,i+1) = u;
 end
+
+%% state plots
+figure; hold on
+plot(X_b(:,1))
+plot(X_b(:,2))
+plot(X_b(:,3))
+plot(X_b(:,5))
+plot(X_b(:,10))
+plot(X_b(:,100))
+plot(X_b(:,end))
+
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b,'econ');
-% n = 14;
-n = 30;
+n = 14;
+% n = 30;
 Vn = V(:,1:n);
 
+%% singular value decay
+figure
+semilogy(diag(S)/S(1,1))
+title("singular value decay")
+
+%% plot POD modes
 figure; hold on
-% for i = 1:n
-for i = n:n
+for i = 1:n
+% for i = n:n
     plot(Vn(:,i))
 end
 
@@ -131,6 +155,9 @@ A3_errors = zeros(nn,1);
 O_errors = zeros(nn,1);
 condsD = zeros(nn,1);
 
+h_ROM_state_error = zeros(nn,1);
+t_ROM_state_error = zeros(nn,1);
+
 n_is__ = n_is(n,is);
 offset = cumsum(n_is__);
 
@@ -170,6 +197,39 @@ for j = 1:nn
     O_errors(j) = norm(O-tO_,"fro")/norm(tO_,"fro");
 
     condsD(j) = condD;
+
+    %% compute avg ROM state error
+    Vn_ = Vn(:,1:n_);
+    tf = @(tx,u) tO_*[uniquepowers(tx,[1 2 3]);u];
+    hO_ = O;
+    hf = @(hx,u) hO_*[uniquepowers(hx,[1 2 3]);u];
+
+    tX_b = zeros(n_,nt+1);
+    hX_b = zeros(n_,nt+1);
+    % U_b = zeros(Nu,nt+1); 
+    t = 0;
+    tx = Vn_'*x0;
+    hx = Vn_'*x0;
+    u = U_b(:,1);
+
+    tX_b(:,1) = tx;
+    hX_b(:,1) = hx;
+    % U_b(:,1) = u;
+
+    for i=1:nt
+        tx = single_step(tx,u,dt,tf);
+        hx = single_step(hx,u,dt,hf);
+
+        t = t + dt;
+        u = U_b(:,i);
+
+        tX_b(:,i+1) = tx;
+        hX_b(:,i+1) = hx;
+        % U_b(:,i+1) = u;
+    end
+    
+    t_ROM_state_error(j) = norm(Vn_*tX_b - X_b,"fro")/norm(X_b,"fro");
+    h_ROM_state_error(j) = norm(Vn_*hX_b - X_b,"fro")/norm(X_b,"fro");
 end
 
 figure
@@ -194,6 +254,21 @@ set(gca, 'YScale', 'log')
 legend("show")
 
 save("data/data_chafee_infante","O_errors","condsD");
+
+figure
+hold on
+semilogy(ns,h_ROM_state_error,'x-', 'LineWidth', 2,'DisplayName',"exactOpInf", "MarkerSize",10)
+semilogy(ns,t_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive", "MarkerSize",10)
+ylabel("avg rel error of states","Interpreter","latex", "FontSize",15)
+xlabel("ROM dimension","Interpreter","latex", "FontSize",15)
+set(gca, 'YScale', 'log')
+grid on
+legend("show","Interpreter","latex", "FontSize",12)
+legend("Location","northwest")
+% ylim([1e-17 1e-15])
+
+savefig("figures/rom_state_error_chafee_infante.fig")
+exportgraphics(gcf,"figures/rom_state_error_chafee_infante.pdf")
 
 
 %% FOM solver running for one time step

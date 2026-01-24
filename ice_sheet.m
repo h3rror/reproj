@@ -104,12 +104,28 @@ end
 
 close(writerObj);
 
+%% state plots
+figure; hold on
+plot(X_b(:,1))
+plot(X_b(:,2))
+plot(X_b(:,3))
+plot(X_b(:,5))
+plot(X_b(:,10))
+plot(X_b(:,100))
+plot(X_b(:,end))
+
 %% construct ROM basis via POD
 X_POD = X_b(:,1:2001);
 
 [V,S,~] = svd(X_b,'econ');
 n = 7;
+% n = 2;
 Vn = V(:,1:n);
+
+%% singular value decay
+figure
+semilogy(diag(S)/S(1,1))
+title("singular value decay")
 
 %% plot POD modes
 figure; hold on
@@ -117,6 +133,7 @@ for i = 1:n
 % for i = n:n
     plot(Vn(:,i))
 end
+
 
 %% generate rank-sufficient snapshot data
 
@@ -161,6 +178,9 @@ A8_errors = zeros(nn,1);
 O_errors = zeros(nn,1);
 condsD = zeros(nn,1);
 
+h_ROM_state_error = zeros(nn,1);
+t_ROM_state_error = zeros(nn,1);
+
 n_is__ = n_is(n,is);
 
 for j = 1:nn
@@ -190,6 +210,41 @@ for j = 1:nn
     O_errors(j) = norm(O-tO_,"fro")/norm(tO_,"fro");
 
     condsD(j) = condD;
+
+    %% compute avg ROM state error
+    Vn_ = Vn(:,1:n_);
+    % tf = @(tx,u) tO_*[uniquepowers(tx,is);u];
+    tf = @(tx,u) tO_*uniquepowers(tx,is);
+    hO_ = O;
+    % hf = @(hx,u) hO_*[uniquepowers(hx,is);u];
+    hf = @(hx,u) hO_*uniquepowers(hx,is);
+
+    tX_b = zeros(n_,nt+1);
+    hX_b = zeros(n_,nt+1);
+    % U_b = zeros(Nu,nt+1); 
+    t = 0;
+    tx = Vn_'*x0;
+    hx = Vn_'*x0;
+    u = U_b(:,1);
+
+    tX_b(:,1) = tx;
+    hX_b(:,1) = hx;
+    % U_b(:,1) = u;
+
+    for i=1:nt
+        tx = single_step(tx,u,dt,tf);
+        hx = single_step(hx,u,dt,hf);
+
+        t = t + dt;
+        u = U_b(:,i);
+
+        tX_b(:,i+1) = tx;
+        hX_b(:,i+1) = hx;
+        % U_b(:,i+1) = u;
+    end
+    
+    t_ROM_state_error(j) = norm(Vn_*tX_b - X_b,"fro")/norm(X_b,"fro");
+    h_ROM_state_error(j) = norm(Vn_*hX_b - X_b,"fro")/norm(X_b,"fro");
 end
 
 figure
@@ -201,6 +256,22 @@ xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 
 legend("show")
+
+
+figure
+hold on
+semilogy(ns,h_ROM_state_error,'x-', 'LineWidth', 2,'DisplayName',"exactOpInf", "MarkerSize",10)
+semilogy(ns,t_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive", "MarkerSize",10)
+ylabel("avg rel error of states","Interpreter","latex", "FontSize",15)
+xlabel("ROM dimension","Interpreter","latex", "FontSize",15)
+set(gca, 'YScale', 'log')
+grid on
+legend("show","Interpreter","latex", "FontSize",12)
+legend("Location","northwest")
+% ylim([1e-17 1e-15])
+
+savefig("figures/rom_state_error_ice_sheet.fig")
+exportgraphics(gcf,"figures/rom_state_error_ice_sheet.pdf")
 %%
 
 save("data/data_icesheet","O_errors","condsD");
