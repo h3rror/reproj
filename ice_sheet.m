@@ -89,20 +89,20 @@ end
 
 %% visualize FOM data
 
-writerObj = VideoWriter("figures/icesheet",'MPEG-4'); %'Motion JPEG AVI');
-writerObj.FrameRate = 15;
-open(writerObj);
-for i =1:100:(nt+1)
-plot(xs,X_b(:,i));
-ylim([0 2.6])
-xlabel("spatial dimension")
-ylabel("ice thickness")
-legend("t="+num2str((i-1)*dt))
-frame = getframe(gcf);
-writeVideo(writerObj,frame);
-end
-
-close(writerObj);
+% writerObj = VideoWriter("figures/icesheet",'MPEG-4'); %'Motion JPEG AVI');
+% writerObj.FrameRate = 15;
+% open(writerObj);
+% for i =1:100:(nt+1)
+% plot(xs,X_b(:,i));
+% ylim([0 2.6])
+% xlabel("spatial dimension")
+% ylabel("ice thickness")
+% legend("t="+num2str((i-1)*dt))
+% frame = getframe(gcf);
+% writeVideo(writerObj,frame);
+% end
+% 
+% close(writerObj);
 
 %% state plots
 figure; hold on
@@ -118,8 +118,9 @@ plot(X_b(:,end))
 X_POD = X_b(:,1:2001);
 
 [V,S,~] = svd(X_b,'econ');
-n = 7;
+% n = 7;
 % n = 2;
+n = 4;
 Vn = V(:,1:n);
 
 %% singular value decay
@@ -213,11 +214,15 @@ for j = 1:nn
 
     %% compute avg ROM state error
     Vn_ = Vn(:,1:n_);
+    [~,~,un_3] = reduced_coordinates(n_,3);
+    [~,~,un_8] = reduced_coordinates(n_,8);
     % tf = @(tx,u) tO_*[uniquepowers(tx,is);u];
-    tf = @(tx,u) tO_*uniquepowers(tx,is);
+    % tf = @(tx,u) tO_*uniquepowers(tx,is);
+    tf = @(tx,u) tO_*[uniquepower(tx,3,un_3);uniquepower(tx,8,un_8)];
     hO_ = O;
     % hf = @(hx,u) hO_*[uniquepowers(hx,is);u];
-    hf = @(hx,u) hO_*uniquepowers(hx,is);
+    % hf = @(hx,u) hO_*uniquepowers(hx,is);
+    hf = @(hx,u) hO_*[uniquepower(hx,3,un_3);uniquepower(hx,8,un_8)];
 
     tX_b = zeros(n_,nt+1);
     hX_b = zeros(n_,nt+1);

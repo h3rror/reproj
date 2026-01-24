@@ -1,10 +1,12 @@
-function Xi = uniquepower(X,i)
+function Xi = uniquepower(X,i,u)
 % computes vector x^i for all columns x of X without memory-expensive
 % detour via kronecker products of x
 
 [N,K] = size(X);
 
-[s,b,u] = reduced_coordinates(N,i);
+if(nargin < 3)
+    [s,b,u] = reduced_coordinates(N,i);
+end
 
 Ni = numel(u);
 % subs_s = zeros(Ni);
