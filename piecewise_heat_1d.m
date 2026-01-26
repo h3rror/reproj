@@ -504,7 +504,9 @@ set(gca, 'YScale', 'log')
 grid on
 legend("show","Location","southeast")
 % title("compares against Taylor approximation!")
-exportgraphics(gcf,"figures_piecewise/taylor_errors.pdf")
+box on
+savefig("figures_piecewise/operator_errors.fig")
+exportgraphics(gcf,"figures_piecewise/operator_errors.pdf")
 
 
 figure
@@ -519,6 +521,8 @@ xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
 legend("show","Location","east")
+box on
+savefig("figures_piecewise/condition_numbers.fig")
 exportgraphics(gcf,"figures_piecewise/condition_numbers.pdf")
 
 
@@ -536,7 +540,9 @@ set(gca, 'YScale', 'log')
 grid on
 legend("show","Location","southeast")
 % title("compares against exact Gaussian!")
-exportgraphics(gcf,"figures_piecewise/gaussian_errors.pdf")
+box on
+savefig("figures_piecewise/operator_errors_evaluated.fig")
+exportgraphics(gcf,"figures_piecewise/operator_errors_evaluated.pdf")
 
 figure
 hold on
@@ -554,6 +560,8 @@ legend("show")
 % title("ROM dim and Taylor dim increasing")
 % title("ROM dim increasing, Taylor dim = "+num2str(s))
 % title("ROM dim =" + num2str(n_) + ", Taylor dim increasing")
+box on
+savefig("figures_piecewise/rom_state_errors.fig")
 exportgraphics(gcf,"figures_piecewise/rom_state_errors.pdf")
 
 

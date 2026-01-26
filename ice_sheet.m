@@ -118,9 +118,9 @@ plot(X_b(:,end))
 X_POD = X_b(:,1:2001);
 
 [V,S,~] = svd(X_b,'econ');
-% n = 7;
+n = 7;
 % n = 2;
-n = 4;
+% n = 4;
 Vn = V(:,1:n);
 
 %% singular value decay
