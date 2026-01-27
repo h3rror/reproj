@@ -15,8 +15,8 @@ dx = 1/N;
 % setup of Allen-Cahn in https://doi.org/10.1016/j.cma.2022.115836
 
 dt = 1e-5;
-% t_end = 4;
-t_end = 0.1;
+t_end = 4;
+% t_end = 0.1;
 % t_end = 1*dt;
 % t_end = 20*dt;
 nt = round(t_end/dt);
@@ -62,7 +62,12 @@ f = @(x,u) F1(x) + F3(x,x,x) + B*u;
 
 x0 = zeros(N,1);
 u_val = @(t) 10*(sin(pi*t)+1); % U_val
+% u_val = @(t) 10*(sin(pi*t)); % U_val
 % u_val = @(t) 10*(cos(pi*t)+1); % U_val
+
+figure
+ts = linspace(0,t_end,t_end/dt);
+plot(ts,u_val(ts))
 
 
 %% generate ROM basis construction data
@@ -201,9 +206,13 @@ for j = 1:nn
 
     %% compute avg ROM state error
     Vn_ = Vn(:,1:n_);
-    tf = @(tx,u) tO_*[uniquepowers(tx,[1 2 3]);u];
+    [~,~,un_2] = reduced_coordinates(n_,2);
+    [~,~,un_3] = reduced_coordinates(n_,3);
+    % tf = @(tx,u) tO_*[uniquepowers(tx,[1 2 3]);u];
+    tf = @(tx,u) tO_*[tx;uniquepower(tx,2,un_2);uniquepower(tx,3,un_3);u];
     hO_ = O;
-    hf = @(hx,u) hO_*[uniquepowers(hx,[1 2 3]);u];
+    % hf = @(hx,u) hO_*[uniquepowers(hx,[1 2 3]);u];
+    hf = @(hx,u) tO_*[hx;uniquepower(hx,2,un_2);uniquepower(hx,3,un_3);u];
 
     tX_b = zeros(n_,nt+1);
     hX_b = zeros(n_,nt+1);
