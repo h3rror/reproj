@@ -521,6 +521,7 @@ xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
 legend("show","Location","east")
+ylim([.8 30])
 box on
 savefig("figures_piecewise/condition_numbers.fig")
 exportgraphics(gcf,"figures_piecewise/condition_numbers.pdf")

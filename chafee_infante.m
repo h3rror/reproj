@@ -15,7 +15,8 @@ dx = 1/N;
 % setup of Allen-Cahn in https://doi.org/10.1016/j.cma.2022.115836
 
 dt = 1e-5;
-t_end = 4;
+% t_end = 4;
+t_end = 1;
 % t_end = 0.1;
 % t_end = 1*dt;
 % t_end = 20*dt;
@@ -61,13 +62,11 @@ F3X = @(X) F3(X(:,1),X(:,2),X(:,3));
 f = @(x,u) F1(x) + F3(x,x,x) + B*u;
 
 x0 = zeros(N,1);
-u_val = @(t) 10*(sin(pi*t)+1); % U_val
+% u_val = @(t) 10*(sin(pi*t)+1); % U_val
+u_val = @(t) 10*rand(1); % U_val
 % u_val = @(t) 10*(sin(pi*t)); % U_val
 % u_val = @(t) 10*(cos(pi*t)+1); % U_val
 
-figure
-ts = linspace(0,t_end,t_end/dt);
-plot(ts,u_val(ts))
 
 
 %% generate ROM basis construction data
@@ -90,6 +89,28 @@ for i=1:nt
     U_b(:,i+1) = u;
 end
 
+%% generate test data
+u_test = @(t) 10*(sin(pi*t)+1); % U_val
+
+X_t = zeros(N,nt+1);
+U_t = zeros(1,nt+1);
+
+t = 0;
+x = x0;
+u = u_test(t);
+
+X_t(:,1) = x0;
+U_t(:,1) = u;
+
+for i=1:nt
+    x = x + dt*f(x,u);
+    t = t + dt;
+    u = u_test(t);
+
+    X_t(:,i+1) = x;
+    U_t(:,i+1) = u;
+end
+
 %% state plots
 figure; hold on
 plot(X_b(:,1))
@@ -100,10 +121,29 @@ plot(X_b(:,10))
 plot(X_b(:,100))
 plot(X_b(:,end))
 
+%% state plots
+figure; hold on
+plot(X_t(:,1))
+plot(X_t(:,2))
+plot(X_t(:,3))
+plot(X_t(:,5))
+plot(X_t(:,10))
+plot(X_t(:,100))
+plot(X_t(:,end))
+
+%% input signal plots
+figure
+ts = linspace(0,t_end,t_end/dt);
+plot(U_b)
+hold on
+plot(U_t)
+
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b,'econ');
 % n = 14;
-n = 4;
+% n = 4;
+n = 10;
+% n = 1;
 % n = 30;
 Vn = V(:,1:n);
 
@@ -118,6 +158,7 @@ for i = 1:n
 % for i = n:n
     plot(Vn(:,i))
 end
+legend("show")
 
 %% construct intrusive operators
 tA1 = Vn'*A1*Vn;
@@ -167,7 +208,8 @@ t_ROM_state_error = zeros(nn,1);
 n_is__ = n_is(n,is);
 offset = cumsum(n_is__);
 
-for j = 1:nn
+% for j = 1:nn
+for j = nn:nn
     n_ = ns(j);
     n_is_ = n_is(n_,is);
     nf_ = sum(n_is_)+Nu;
@@ -214,16 +256,16 @@ for j = 1:nn
     % hf = @(hx,u) hO_*[uniquepowers(hx,[1 2 3]);u];
     hf = @(hx,u) tO_*[hx;uniquepower(hx,2,un_2);uniquepower(hx,3,un_3);u];
 
-    tX_b = zeros(n_,nt+1);
-    hX_b = zeros(n_,nt+1);
+    tX_t = zeros(n_,nt+1);
+    hX_t = zeros(n_,nt+1);
     % U_b = zeros(Nu,nt+1); 
     t = 0;
     tx = Vn_'*x0;
     hx = Vn_'*x0;
-    u = U_b(:,1);
+    u = U_t(:,1);
 
-    tX_b(:,1) = tx;
-    hX_b(:,1) = hx;
+    tX_t(:,1) = tx;
+    hX_t(:,1) = hx;
     % U_b(:,1) = u;
 
     for i=1:nt
@@ -231,15 +273,14 @@ for j = 1:nn
         hx = single_step(hx,u,dt,hf);
 
         t = t + dt;
-        u = U_b(:,i);
+        u = U_t(:,i);
 
-        tX_b(:,i+1) = tx;
-        hX_b(:,i+1) = hx;
-        % U_b(:,i+1) = u;
+        tX_t(:,i+1) = tx;
+        hX_t(:,i+1) = hx;
     end
     
-    t_ROM_state_error(j) = norm(Vn_*tX_b - X_b,"fro")/norm(X_b,"fro");
-    h_ROM_state_error(j) = norm(Vn_*hX_b - X_b,"fro")/norm(X_b,"fro");
+    t_ROM_state_error(j) = norm(Vn_*tX_t - X_t,"fro")/norm(X_t,"fro");
+    h_ROM_state_error(j) = norm(Vn_*hX_t - X_t,"fro")/norm(X_t,"fro");
 end
 
 figure
