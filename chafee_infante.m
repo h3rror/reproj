@@ -15,8 +15,9 @@ dx = 1/N;
 % setup of Allen-Cahn in https://doi.org/10.1016/j.cma.2022.115836
 
 dt = 1e-5;
-% t_end = 4;
-t_end = 1;
+t_end = 4;
+% t_end = 1;
+% t_end = 2;
 % t_end = 0.1;
 % t_end = 1*dt;
 % t_end = 20*dt;
@@ -62,8 +63,8 @@ F3X = @(X) F3(X(:,1),X(:,2),X(:,3));
 f = @(x,u) F1(x) + F3(x,x,x) + B*u;
 
 x0 = zeros(N,1);
-% u_val = @(t) 10*(sin(pi*t)+1); % U_val
-u_val = @(t) 10*rand(1); % U_val
+u_val = @(t) 10*(sin(pi*t)+1); % U_val
+% u_val = @(t) 10*rand(1); % U_val
 % u_val = @(t) 10*(sin(pi*t)); % U_val
 % u_val = @(t) 10*(cos(pi*t)+1); % U_val
 
@@ -140,9 +141,9 @@ plot(U_t)
 
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b,'econ');
-% n = 14;
+n = 14;
 % n = 4;
-n = 10;
+% n = 10;
 % n = 1;
 % n = 30;
 Vn = V(:,1:n);
@@ -208,8 +209,8 @@ t_ROM_state_error = zeros(nn,1);
 n_is__ = n_is(n,is);
 offset = cumsum(n_is__);
 
-% for j = 1:nn
-for j = nn:nn
+for j = 1:nn
+% for j = nn:nn
     n_ = ns(j);
     n_is_ = n_is(n_,is);
     nf_ = sum(n_is_)+Nu;
@@ -251,10 +252,10 @@ for j = nn:nn
     [~,~,un_2] = reduced_coordinates(n_,2);
     [~,~,un_3] = reduced_coordinates(n_,3);
     % tf = @(tx,u) tO_*[uniquepowers(tx,[1 2 3]);u];
-    tf = @(tx,u) tO_*[tx;uniquepower(tx,2,un_2);uniquepower(tx,3,un_3);u];
+    tf = @(tx,u) tO_*[u;tx;uniquepower(tx,2,un_2);uniquepower(tx,3,un_3)];
     hO_ = O;
     % hf = @(hx,u) hO_*[uniquepowers(hx,[1 2 3]);u];
-    hf = @(hx,u) tO_*[hx;uniquepower(hx,2,un_2);uniquepower(hx,3,un_3);u];
+    hf = @(hx,u) hO_*[u;hx;uniquepower(hx,2,un_2);uniquepower(hx,3,un_3)];
 
     tX_t = zeros(n_,nt+1);
     hX_t = zeros(n_,nt+1);
