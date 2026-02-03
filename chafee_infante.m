@@ -15,10 +15,10 @@ dx = 1/N;
 % setup of Allen-Cahn in https://doi.org/10.1016/j.cma.2022.115836
 
 dt = 1e-5;
-t_end = 4;
+% t_end = 4;
 % t_end = 1;
 % t_end = 2;
-% t_end = 0.1;
+t_end = 0.1;
 % t_end = 1*dt;
 % t_end = 20*dt;
 nt = round(t_end/dt);
@@ -43,9 +43,9 @@ A1(1,1) = -1/dt;
 BC(1,:) = 0;
 
 % % % ddt x(1,t) = 0; % wrong !!!
-% % A1(end,:) = 0;
-% % % A3(end,:) = 0;
-% % BC(end,:) = 0;
+% A1(end,:) = 0;
+% % A3(end,:) = 0;
+% BC(end,:) = 0;
 
 % ddxi x(1,t) = 0
 A1(end,end) = -1/dx^2 + 1;
@@ -91,26 +91,28 @@ for i=1:nt
 end
 
 %% generate test data
-u_test = @(t) 10*(sin(pi*t)+1); % U_val
-
-X_t = zeros(N,nt+1);
-U_t = zeros(1,nt+1);
-
-t = 0;
-x = x0;
-u = u_test(t);
-
-X_t(:,1) = x0;
-U_t(:,1) = u;
-
-for i=1:nt
-    x = x + dt*f(x,u);
-    t = t + dt;
-    u = u_test(t);
-
-    X_t(:,i+1) = x;
-    U_t(:,i+1) = u;
-end
+X_t = X_b;
+U_t = U_b;
+% u_test = @(t) 10*(sin(pi*t)+1); % U_val
+% 
+% X_t = zeros(N,nt+1);
+% U_t = zeros(1,nt+1);
+% 
+% t = 0;
+% x = x0;
+% u = u_test(t);
+% 
+% X_t(:,1) = x0;
+% U_t(:,1) = u;
+% 
+% for i=1:nt
+%     x = x + dt*f(x,u);
+%     t = t + dt;
+%     u = u_test(t);
+% 
+%     X_t(:,i+1) = x;
+%     U_t(:,i+1) = u;
+% end
 
 %% state plots
 figure; hold on
@@ -123,21 +125,21 @@ plot(X_b(:,100))
 plot(X_b(:,end))
 
 %% state plots
-figure; hold on
-plot(X_t(:,1))
-plot(X_t(:,2))
-plot(X_t(:,3))
-plot(X_t(:,5))
-plot(X_t(:,10))
-plot(X_t(:,100))
-plot(X_t(:,end))
+% figure; hold on
+% plot(X_t(:,1))
+% plot(X_t(:,2))
+% plot(X_t(:,3))
+% plot(X_t(:,5))
+% plot(X_t(:,10))
+% plot(X_t(:,100))
+% plot(X_t(:,end))
 
 %% input signal plots
 figure
 ts = linspace(0,t_end,t_end/dt);
 plot(U_b)
-hold on
-plot(U_t)
+% hold on
+% plot(U_t)
 
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b,'econ');
@@ -294,6 +296,7 @@ xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 
 legend("show")
+box on
 
 figure
 hold on
@@ -304,6 +307,7 @@ xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 
 legend("show")
+box on
 
 save("data/data_chafee_infante","O_errors","condsD");
 
@@ -316,9 +320,9 @@ xlabel("ROM dimension","Interpreter","latex", "FontSize",15)
 set(gca, 'YScale', 'log')
 grid on
 legend("show","Interpreter","latex", "FontSize",12)
-legend("Location","northwest")
+legend("Location","northeast")
 % ylim([1e-17 1e-15])
-
+box on
 savefig("figures/rom_state_error_chafee_infante.fig")
 exportgraphics(gcf,"figures/rom_state_error_chafee_infante.pdf")
 

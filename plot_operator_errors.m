@@ -34,6 +34,7 @@ xlabel("ROM dimension","Interpreter","latex","FontSize",15)
 set(gca, 'YScale', 'log')
 grid on
 legend("show","Interpreter","latex","FontSize",12)
+box on
 
 savefig("figures/operator_errors.fig")
 exportgraphics(gcf,"figures/operator_errors.pdf")
@@ -44,6 +45,7 @@ xlabel("ROM dimension","Interpreter","latex","FontSize",15)
 set(gca, 'YScale', 'log')
 grid on
 legend("show","Interpreter","latex","FontSize",12)
+box on
 
 savefig("figures/condition_numbers.fig")
 exportgraphics(gcf,"figures/condition_numbers.pdf")

@@ -277,6 +277,7 @@ xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 
 legend("show")
+box on
 
 
 figure
@@ -288,8 +289,9 @@ xlabel("ROM dimension","Interpreter","latex", "FontSize",15)
 set(gca, 'YScale', 'log')
 grid on
 legend("show","Interpreter","latex", "FontSize",12)
-legend("Location","northwest")
+legend("Location","northeast")
 % ylim([1e-17 1e-15])
+box on
 
 savefig("figures/rom_state_error_ice_sheet.fig")
 exportgraphics(gcf,"figures/rom_state_error_ice_sheet.pdf")

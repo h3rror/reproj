@@ -274,6 +274,7 @@ set(gca, 'YScale', 'log')
 grid on
 legend("show","Interpreter","latex", "FontSize",12)
 legend("Location","northwest")
+box on
 
 savefig("figures/energy_violation.fig")
 exportgraphics(gcf,"figures/energy_violation.pdf")
@@ -289,6 +290,7 @@ grid on
 legend("show","Interpreter","latex", "FontSize",12)
 legend("Location","northwest")
 ylim([1e-17 1e-15])
+box on
 
 savefig("figures/symmetry_violation.fig")
 exportgraphics(gcf,"figures/symmetry_violation.pdf")
@@ -302,11 +304,12 @@ xlabel("ROM dimension","Interpreter","latex", "FontSize",15)
 set(gca, 'YScale', 'log')
 grid on
 legend("show","Interpreter","latex", "FontSize",12)
-legend("Location","northwest")
+legend("Location","northeast")
 % ylim([1e-17 1e-15])
+box on
 
-savefig("figures/rom_state_error.fig")
-exportgraphics(gcf,"figures/rom_state_error.pdf")
+savefig("figures/rom_state_error_burgers.fig")
+exportgraphics(gcf,"figures/rom_state_error_burgers.pdf")
 
 
 %% visualize singular values
