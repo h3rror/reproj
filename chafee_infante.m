@@ -186,6 +186,16 @@ U0 = XU(1:Nu,:);
 nf = size(XU,2);
 tX1 = zeros(n,nf);
 
+%% plot initial conditions
+
+figure
+hold on
+for i = 1:nf
+    plot(Vn*tX0(:,i))
+end
+
+%%
+
 % compute time step estimate (3.10)
 dt1 = dt_estimate(X_b,U_b,Vn(:,1),dt,is);
 

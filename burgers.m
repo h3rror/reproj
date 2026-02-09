@@ -130,6 +130,16 @@ U0 = XU(1:Nu,:);
 nf = size(tX0,2);
 tX1 = zeros(n,nf);
 
+%% plot initial conditions
+
+figure
+hold on
+for i = 1:nf
+    plot(Vn*tX0(:,i))
+end
+
+%%
+
 % compute time step estimate (3.10)
 dt1 = dt_estimate(X_b,U_b,Vn(:,1),dt,is);
 
@@ -216,6 +226,7 @@ for j = 1:nn
     % legend("show")
     ylim([4 2e4])
     grid on
+    box on
     legend("intrusive","exactOpInf","Location","northwest","Interpreter","latex", "FontSize",12)
 
     %% compute avg ROM state error
@@ -299,7 +310,7 @@ figure
 hold on
 semilogy(ns,h_ROM_state_error,'x-', 'LineWidth', 2,'DisplayName',"exactOpInf", "MarkerSize",10)
 semilogy(ns,t_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive", "MarkerSize",10)
-ylabel("avg rel error of states","Interpreter","latex", "FontSize",15)
+ylabel("relative average ROM state error","Interpreter","latex", "FontSize",15)
 xlabel("ROM dimension","Interpreter","latex", "FontSize",15)
 set(gca, 'YScale', 'log')
 grid on
