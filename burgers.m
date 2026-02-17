@@ -42,7 +42,7 @@ D = -2*diag(ones(N,1)) + diag(ones(N-1,1),1) + diag(ones(N-1,1),-1);
 D(N,1) = 1;
 D(1,N) = 1;
 D = D/dx^2;
-% mu = 0.1;
+% mu = 0.1; %
 mu = 1;
 
 F1 = @(x) mu*D*x;
