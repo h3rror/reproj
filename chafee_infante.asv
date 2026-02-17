@@ -193,48 +193,57 @@ for j = 1:nn
 
     condsD(j) = condD;
 
-    % computeROMStateError = true
-    computeROMStateError = false
-    if computeROMStateError
-        %% compute avg ROM state error
-        Vn_ = Vn(:,1:n_);
-        [~,~,un_2] = reduced_coordinates(n_,2);
-        [~,~,un_3] = reduced_coordinates(n_,3);
-        tf = @(tx,u) tO_*[u;tx;uniquepower(tx,2,un_2);uniquepower(tx,3,un_3)];
-        hO_ = O;
-        hf = @(hx,u) hO_*[u;hx;uniquepower(hx,2,un_2);uniquepower(hx,3,un_3)];
+    %% compute avg ROM state error
+    Vn_ = Vn(:,1:n_);
+    [~,~,un_2] = reduced_coordinates(n_,2);
+    [~,~,un_3] = reduced_coordinates(n_,3);
+    tf = @(tx,u) tO_*[u;tx;uniquepower(tx,2,un_2);uniquepower(tx,3,un_3)];
+    hO_ = O;
+    hf = @(hx,u) hO_*[u;hx;uniquepower(hx,2,un_2);uniquepower(hx,3,un_3)];
 
-        tX_t = zeros(n_,nt+1);
-        hX_t = zeros(n_,nt+1);
-        % U_b = zeros(Nu,nt+1);
-        t = 0;
-        tx = Vn_'*x0;
-        hx = Vn_'*x0;
-        u = U_b(:,1);
+    tX_t = zeros(n_,nt+1);
+    hX_t = zeros(n_,nt+1);
+    % U_b = zeros(Nu,nt+1); 
+    t = 0;
+    tx = Vn_'*x0;
+    hx = Vn_'*x0;
+    u = U_b(:,1);
 
-        tX_t(:,1) = tx;
-        hX_t(:,1) = hx;
-        % U_b(:,1) = u;
+    tX_t(:,1) = tx;
+    hX_t(:,1) = hx;
+    % U_b(:,1) = u;
 
-        for i=1:nt
-            tx = single_step(tx,u,dt,tf);
-            hx = single_step(hx,u,dt,hf);
+    for i=1:nt
+        tx = single_step(tx,u,dt,tf);
+        hx = single_step(hx,u,dt,hf);
 
-            t = t + dt;
-            u = U_b(:,i);
+        t = t + dt;
+        u = U_b(:,i);
 
-            tX_t(:,i+1) = tx;
-            hX_t(:,i+1) = hx;
-        end
-
-        t_ROM_state_error(j) = norm(Vn_*tX_t - X_b,"fro")/norm(X_b,"fro");
-        h_ROM_state_error(j) = norm(Vn_*hX_t - X_b,"fro")/norm(X_b,"fro");
+        tX_t(:,i+1) = tx;
+        hX_t(:,i+1) = hx;
     end
+    
+    t_ROM_state_error(j) = norm(Vn_*tX_t - X_b,"fro")/norm(X_b,"fro");
+    h_ROM_state_error(j) = norm(Vn_*hX_t - X_b,"fro")/norm(X_b,"fro");
 end
 
 figure
 hold on
+semilogy(ns,A1_errors,'x-', 'LineWidth', 2,'DisplayName',"A_1")
+semilogy(ns,A3_errors,'x-', 'LineWidth', 2,'DisplayName',"A_3")
+semilogy(ns,B_errors,'x-', 'LineWidth', 2,'DisplayName',"B")
+ylabel("operator error")
+xlabel("ROM dimension")
+set(gca, 'YScale', 'log')
+
+legend("show")
+box on
+
+figure
+hold on
 semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"O chafee-infante")
+
 ylabel("relative operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
@@ -244,22 +253,20 @@ box on
 
 save("data/data_chafee_infante","O_errors","condsD");
 
-if computeROMStateError
-    figure
-    hold on
-    semilogy(ns,h_ROM_state_error,'x-', 'LineWidth', 2,'DisplayName',"exactOpInf", "MarkerSize",10)
-    semilogy(ns,t_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive", "MarkerSize",10)
-    ylabel("avg rel error of states","Interpreter","latex", "FontSize",15)
-    xlabel("ROM dimension","Interpreter","latex", "FontSize",15)
-    set(gca, 'YScale', 'log')
-    grid on
-    legend("show","Interpreter","latex", "FontSize",12)
-    legend("Location","northeast")
-    % ylim([1e-17 1e-15])
-    box on
-    savefig("figures/rom_state_error_chafee_infante.fig")
-    exportgraphics(gcf,"figures/rom_state_error_chafee_infante.pdf")
-end
+figure
+hold on
+semilogy(ns,h_ROM_state_error,'x-', 'LineWidth', 2,'DisplayName',"exactOpInf", "MarkerSize",10)
+semilogy(ns,t_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive", "MarkerSize",10)
+ylabel("avg rel error of states","Interpreter","latex", "FontSize",15)
+xlabel("ROM dimension","Interpreter","latex", "FontSize",15)
+set(gca, 'YScale', 'log')
+grid on
+legend("show","Interpreter","latex", "FontSize",12)
+legend("Location","northeast")
+% ylim([1e-17 1e-15])
+box on
+savefig("figures/rom_state_error_chafee_infante.fig")
+exportgraphics(gcf,"figures/rom_state_error_chafee_infante.pdf")
 
 
 %% FOM solver running for one time step
