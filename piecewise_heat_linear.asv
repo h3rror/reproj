@@ -22,15 +22,20 @@ xis = linspace(Omega(1),Omega(2),N+1)';
 xis_in = xis(2:end-1);
 dx = (Omega(2)-Omega(1))/N;
 
-d = 3; % dimension  of mu
+% d = 3; % dimension  of mu
+% d = 16; % dimension  of mu
+d = 4; % dimension  of mu
 % d = 20;
 mu0 = rand(d,1) + 1; % each entry between 1 and 2
 A = 1/2*spdiags([ones(N,1) ones(N,1)],[0 1],N,N+1); % average in the N midpoints within N+1 points
-inds = ceil(eps+d*(xis'-Omega(1))/(Omega(2)-Omega(1)));
+% inds = ceil(eps+d*(xis'-Omega(1))/(Omega(2)-Omega(1)));
+inds = ceil(eps+d*((A*xis)'-Omega(1))/(Omega(2)-Omega(1)));
 % nuplus  = @(mu) mu(inds(2:end));
 % numinus = @(mu) mu(inds(1:end-1));
 % nu = @(x,mu) mu(ceil(eps+d*(xis'-Omega(1))/(Omega(2)-Omega(1)))); % x argument for compatibility
-nu = @(x,mu) [0;x;0].*mu(inds); % x argument for compatibility
+% nu = @(x,mu) [0;x;0].*mu(inds); % x argument for compatibility
+% nu = @(x,mu) (A*[0;x;0]).*mu(inds); % x argument for compatibility
+nu = @(x,mu) mu(inds); % x argument for compatibility
 % nu = @(x,mu) mu(floor(eps+d*(xis'-Omega(1))/(Omega(2)-Omega(1)))); % x argument for compatibility
 % x0 = -666*ones(size(xis));
 
@@ -51,7 +56,8 @@ figure
 hold on
 % plot(xis,x0, "DisplayName","x_0")
 % plot(xis,k0(xis,mu0), "DisplayName","k_0(\mu_0)")
-plot(xis,nu(x0,mu0), "DisplayName","\nu(x_0,\mu_0)")
+% plot(xis,nu(x0,mu0), "DisplayName","\nu(x_0,\mu_0)")
+plot(A*xis,nu(x0,mu0), "DisplayName","\nu(x_0,\mu_0)")
 % plot(xis,numinus(mu0), "DisplayName","\nu(x_0,\mu_0)")
 % plot(xis,nuplus(mu0), "DisplayName","\nu(x_0,\mu_0)")
 % plot(xis,nu(mu0), "DisplayName","\nu(\mu_0)")
@@ -83,16 +89,18 @@ C = 1/6*dx*spdiags([ones(N,1) 4*ones(N,1) ones(N,1)],[-1 0 1],N1,N1);
 % stiffness matrix
 % B = 1/dx*spdiags([-ones(N,1) 2*ones(N,1) ones(N,1)],[-1 0 1],N,N);
 % B = @(mu) -1/dx*spdiags([-numinus(mu) numinus(mu)+nuplus(mu) -nuplus(mu)],[-1 0 1],N1,N1);
-I = speye(N+1);
+I = speye(N);
 Iplus = I(2:end,:);
 Iminus = I(1:end-1,:);
-B = @(x,mu) -1/dx*spdiags([-Iminus*nu(x,mu) (Iminus+Iplus)*nu(x,mu) -Iplus*nu(x,mu)],[-1 0 1],N1,N1);
+% B = @(x,mu) -1/dx*spdiags([-Iminus*nu(x,mu) (Iminus+Iplus)*nu(x,mu) -Iplus*nu(x,mu)],[-1 0 1],N1,N1);
+B = @(x,mu) -1/dx*spdiags([-Iminus*nu([],mu) (Iminus+Iplus)*nu([],mu) -Iplus*nu([],mu)],[-1 0 1],N1,N1);
 
 % F1_exact = @(x,mu) C\B*(nu([],mu).*x);
 % F1_exact = @(x,mu) C\(B(x,mu)*x);
 
 % F2_exact = @(x1,x2,mu) C\(B(x1,mu)*x2);
-F2_exact = @(x1,x2,mu) C\(B(x0,mu)*x2);
+F2_exact = @(x1,x2,mu) C\(B([],mu)*(x1.*x2));
+% F2_exact = @(x1,x2,mu) C\(B(x0,mu)*x2);
 F2X_exact = @(X,mu) F2_exact(X(:,1),X(:,2),mu); % enable storing variables in one matrix
 F2X = @(X,mu) F2X_exact(X,mu);
 
@@ -152,7 +160,8 @@ s = qH;
 % % % theta_H = @(mu) (mu'-mu0).^(0:s-1);
 theta_H = @(mu) mu';
 
-Theta_H = theta_H(mus(1:s));
+% Theta_H = theta_H(mus(1:s));
+Theta_H = theta_H(mus);
 Thetas{1} = Theta_H;
 
 % F2 = @(x1,x2,theta) sum(theta'.*[F2_k(x1,x2,k0(xis,mu0)) F2_k(x1,x2,k1)],2);
@@ -205,8 +214,9 @@ Nu = 0; % input signal dimension
 % mus_b = mus; % so far used
 % mus_b = linspace(-1,1,s_b);
 % mus_b = mus;
-mus_b = rand(d,5) + 1; % each entry between 1 and 2
-s_b = 5;
+% s_b = 5; % does not need to be equal to d
+s_b = d; % does not need to be equal to d
+mus_b = rand(d,s_b) + 1; % each entry between 1 and 2
 
 X_b = zeros(N1,nt+1,s_b);
 U_b = zeros(Nu,nt+1,s_b); 
@@ -218,8 +228,8 @@ end
 
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b(:,:),'econ');
-% n = 30;
-n = 6;
+n = 30;
+% n = 6;
 % n = 16;
 % n = N1;
 % n = N;
@@ -260,7 +270,7 @@ plot(xis_in,X_b(:,end,k))
 figure
 hold on
 for k = 1:s_b
-    plot(xis_in,X_b(:,end,k))
+    plot(xis_in,X_b(:,end,k),"-x")
 end
 
 
@@ -271,7 +281,8 @@ tX_b1 = tX_b(:,1:end-1,:);
 tX_b2 = tX_b(:,2:end,:);
 dot_tX_b = (tX_b2-tX_b1)/dt;
 
-[O,A_inds,B_inds,condD] = p_opinf(dot_tX_b,tX_b1,[],is,Thetas,true);
+Thetas_b{1} = theta_H(mus_b);
+[O,A_inds,B_inds,condD] = p_opinf(dot_tX_b,tX_b1,[],is,Thetas_b,true);
 sota.O = O;
 sota.condsD = condD;
 

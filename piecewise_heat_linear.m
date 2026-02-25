@@ -23,7 +23,9 @@ xis_in = xis(2:end-1);
 dx = (Omega(2)-Omega(1))/N;
 
 % d = 3; % dimension  of mu
-d = 20;
+d = 16; % dimension  of mu
+% d = 4; % dimension  of mu
+% d = 20;
 mu0 = rand(d,1) + 1; % each entry between 1 and 2
 A = 1/2*spdiags([ones(N,1) ones(N,1)],[0 1],N,N+1); % average in the N midpoints within N+1 points
 % inds = ceil(eps+d*(xis'-Omega(1))/(Omega(2)-Omega(1)));
@@ -158,7 +160,8 @@ s = qH;
 % % % theta_H = @(mu) (mu'-mu0).^(0:s-1);
 theta_H = @(mu) mu';
 
-Theta_H = theta_H(mus(1:s));
+% Theta_H = theta_H(mus(1:s));
+Theta_H = theta_H(mus);
 Thetas{1} = Theta_H;
 
 % F2 = @(x1,x2,theta) sum(theta'.*[F2_k(x1,x2,k0(xis,mu0)) F2_k(x1,x2,k1)],2);
@@ -177,7 +180,8 @@ title("RHS evaluated at x_0 and  \mu_0")
 legend("show")
 
 % mu1 = -1;
-mu1 = 2 - mu0 + 1; 
+% mu1 = 2 - mu0 + 1; 
+mu1 = ones(d,1); mu1(1) = 2; % make mu1 = mus_b(:,1)
 % mu1 = -mu0;
 figure
 hold on
@@ -211,8 +215,10 @@ Nu = 0; % input signal dimension
 % mus_b = mus; % so far used
 % mus_b = linspace(-1,1,s_b);
 % mus_b = mus;
-mus_b = rand(d,5) + 1; % each entry between 1 and 2
-s_b = 5;
+% s_b = 5; % does not need to be equal to d
+s_b = d; % does not need to be equal to d
+% mus_b = rand(d,s_b) + 1; % each entry between 1 and 2
+mus_b = eye(d) + 1; % each entry between 1 and 2
 
 X_b = zeros(N1,nt+1,s_b);
 U_b = zeros(Nu,nt+1,s_b); 
@@ -266,7 +272,7 @@ plot(xis_in,X_b(:,end,k))
 figure
 hold on
 for k = 1:s_b
-    plot(xis_in,X_b(:,end,k))
+    plot(xis_in,X_b(:,end,k),"-x")
 end
 
 
@@ -277,9 +283,10 @@ tX_b1 = tX_b(:,1:end-1,:);
 tX_b2 = tX_b(:,2:end,:);
 dot_tX_b = (tX_b2-tX_b1)/dt;
 
-[O,A_inds,B_inds,condD] = p_opinf(dot_tX_b,tX_b1,[],is,Thetas,true);
-sota.O = O;
-sota.condsD = condD;
+% Thetas_b{1} = theta_H(mus_b);
+% [O,A_inds,B_inds,condD] = p_opinf(dot_tX_b,tX_b1,[],is,Thetas_b,true);
+% sota.O = O;
+% sota.condsD = condD;
 
 %% construct intrusive operators
 
