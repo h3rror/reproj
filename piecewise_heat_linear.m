@@ -473,6 +473,26 @@ for j = 1:nn
     % Xmu1_FOM = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu0));
 
     In_2 = kron2power(n_,2);
+
+    %% intrusive
+
+    intr.Os = reshape(tA2s_(:),[n_, n_is_(1), s]);
+
+    intr.Omu0_ = affine_op(intr.Os,theta_H(mu0));
+    intr.ROMmu0_step = @(x) x+ dt*intr.Omu0_*In_2*kron(x,x);
+    % intr.ROMmu0_step = @(x) x+ dt*intr.Omu0_*x; % linear
+    % ROMmu1_step = @(x) x+ dt*Omu1_*In_2*kron(x,x);
+    intr.Omu1_ = affine_op(intr.Os,theta_H(mu1));
+    intr.ROMmu1_step = @(x) x+ dt*intr.Omu1_*In_2*kron(x,x);
+    % intr.ROMmu1_step = @(x) x+ dt*intr.Omu1_*x; % linear
+
+    Vn_ = Vn(:,1:n_);
+    intr.Xmu0 = simulate(Vn_'*x0,dt,nt,intr.ROMmu0_step);
+    intr.Xmu1 = simulate(Vn_'*x0,dt,nt,intr.ROMmu1_step);
+
+    intr.ROMerror_mu0(j) = sum(vecwise_2norm(Xmu0_FOM - Vn_*intr.Xmu0))/sum(vecwise_2norm(Xmu0_FOM));
+    intr.ROMerror_mu1(j) = sum(vecwise_2norm(Xmu1_FOM - Vn_*intr.Xmu1))/sum(vecwise_2norm(Xmu1_FOM));
+    %%
     % ROMmu0_step = @(x) x+ dt*Omu0_*In_2*kron(x,x);
     deco.Omu0_ = affine_op(deco.Os,theta_H(mu0));
     deco.ROMmu0_step = @(x) x+ dt*deco.Omu0_*In_2*kron(x,x);
@@ -580,6 +600,8 @@ grid on
 legend("show","Location","southeast")
 % title("compares against exact Gaussian!")
 box on
+set(gcf,'Position',[100 100 500 500])
+
 savefig("figures_piecewise/operator_errors_evaluated.fig")
 exportgraphics(gcf,"figures_piecewise/operator_errors_evaluated.pdf")
 
@@ -591,6 +613,9 @@ if monolithic
     semilogy(ns,mono.ROMerror_mu0,'+--','DisplayName',"\mu_0 monolithic")
     semilogy(ns,mono.ROMerror_mu1,'+--','DisplayName',"\mu_1 monolithic")
 end
+semilogy(ns,intr.ROMerror_mu0,'o','DisplayName',"\mu_0 intrusive")
+semilogy(ns,intr.ROMerror_mu1,'o','DisplayName',"\mu_1 intrusive")
+
 ylabel("average ROM state error")
 xlabel("increasing dimension")
 set(gca, 'YScale', 'log')
@@ -600,9 +625,10 @@ legend("show")
 % title("ROM dim increasing, Taylor dim = "+num2str(s))
 % title("ROM dim =" + num2str(n_) + ", Taylor dim increasing")
 box on
+set(gcf,'Position',[100 100 500 500])
+
 savefig("figures_piecewise/rom_state_errors.fig")
 exportgraphics(gcf,"figures_piecewise/rom_state_errors.pdf")
-
 
 %% visualize singular values
 % figure; semilogy(diag(S),'o-')

@@ -542,6 +542,8 @@ grid on
 legend("show","Location","southeast")
 % title("compares against exact Gaussian!")
 box on
+set(gcf,'Position',[100 100 500 500])
+
 savefig("figures_piecewise/operator_errors_evaluated.fig")
 exportgraphics(gcf,"figures_piecewise/operator_errors_evaluated.pdf")
 
@@ -553,6 +555,9 @@ if monolithic
     semilogy(ns,mono.ROMerror_mu0,'+--','DisplayName',"\mu_0 monolithic")
     semilogy(ns,mono.ROMerror_mu1,'+--','DisplayName',"\mu_1 monolithic")
 end
+semilogy(ns,intr.ROMerror_mu0,'o','DisplayName',"\mu_0 intrusive")
+semilogy(ns,intr.ROMerror_mu1,'o','DisplayName',"\mu_1 intrusive")
+
 ylabel("average ROM state error")
 xlabel("increasing dimension")
 set(gca, 'YScale', 'log')
@@ -562,6 +567,8 @@ legend("show")
 % title("ROM dim increasing, Taylor dim = "+num2str(s))
 % title("ROM dim =" + num2str(n_) + ", Taylor dim increasing")
 box on
+set(gcf,'Position',[100 100 500 500])
+
 savefig("figures_piecewise/rom_state_errors.fig")
 exportgraphics(gcf,"figures_piecewise/rom_state_errors.pdf")
 

@@ -180,7 +180,8 @@ title("RHS evaluated at x_0 and  \mu_0")
 legend("show")
 
 % mu1 = -1;
-mu1 = 2 - mu0 + 1; 
+% mu1 = 2 - mu0 + 1; 
+mu1 = ones(d,1); mu1(1) = 2; % make mu1 = mus_b(:,1)
 % mu1 = -mu0;
 figure
 hold on
@@ -216,7 +217,8 @@ Nu = 0; % input signal dimension
 % mus_b = mus;
 % s_b = 5; % does not need to be equal to d
 s_b = d; % does not need to be equal to d
-mus_b = rand(d,s_b) + 1; % each entry between 1 and 2
+% mus_b = rand(d,s_b) + 1; % each entry between 1 and 2
+mus_b = eye(d) + 1; % each entry between 1 and 2
 
 X_b = zeros(N1,nt+1,s_b);
 U_b = zeros(Nu,nt+1,s_b); 
@@ -281,10 +283,10 @@ tX_b1 = tX_b(:,1:end-1,:);
 tX_b2 = tX_b(:,2:end,:);
 dot_tX_b = (tX_b2-tX_b1)/dt;
 
-Thetas_b{1} = theta_H(mus_b);
-[O,A_inds,B_inds,condD] = p_opinf(dot_tX_b,tX_b1,[],is,Thetas_b,true);
-sota.O = O;
-sota.condsD = condD;
+% Thetas_b{1} = theta_H(mus_b);
+% [O,A_inds,B_inds,condD] = p_opinf(dot_tX_b,tX_b1,[],is,Thetas_b,true);
+% sota.O = O;
+% sota.condsD = condD;
 
 %% construct intrusive operators
 
@@ -471,6 +473,26 @@ for j = 1:nn
     % Xmu1_FOM = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu0));
 
     In_2 = kron2power(n_,2);
+
+    %% intrusive
+
+    intr.Os = reshape(tAs_,[n_, n_is_(1), s]);
+
+    intr.Omu0_ = affine_op(intr.Os,theta_H(mu0));
+    intr.ROMmu0_step = @(x) x+ dt*intr.Omu0_*In_2*kron(x,x);
+    % intr.ROMmu0_step = @(x) x+ dt*intr.Omu0_*x; % linear
+    % ROMmu1_step = @(x) x+ dt*Omu1_*In_2*kron(x,x);
+    intr.Omu1_ = affine_op(intr.Os,theta_H(mu1));
+    intr.ROMmu1_step = @(x) x+ dt*intr.Omu1_*In_2*kron(x,x);
+    % intr.ROMmu1_step = @(x) x+ dt*intr.Omu1_*x; % linear
+
+    Vn_ = Vn(:,1:n_);
+    intr.Xmu0 = simulate(Vn_'*x0,dt,nt,intr.ROMmu0_step);
+    intr.Xmu1 = simulate(Vn_'*x0,dt,nt,intr.ROMmu1_step);
+
+    intr.ROMerror_mu0(j) = sum(vecwise_2norm(Xmu0_FOM - Vn_*intr.Xmu0))/sum(vecwise_2norm(Xmu0_FOM));
+    intr.ROMerror_mu1(j) = sum(vecwise_2norm(Xmu1_FOM - Vn_*intr.Xmu1))/sum(vecwise_2norm(Xmu1_FOM));
+    %%
     % ROMmu0_step = @(x) x+ dt*Omu0_*In_2*kron(x,x);
     deco.Omu0_ = affine_op(deco.Os,theta_H(mu0));
     deco.ROMmu0_step = @(x) x+ dt*deco.Omu0_*In_2*kron(x,x);
@@ -589,6 +611,8 @@ if monolithic
     semilogy(ns,mono.ROMerror_mu0,'+--','DisplayName',"\mu_0 monolithic")
     semilogy(ns,mono.ROMerror_mu1,'+--','DisplayName',"\mu_1 monolithic")
 end
+semilogy(ns,intr.ROMerror_mu0,'o:','DisplayName',"\mu_0 intrusive")
+semilogy(ns,intr.ROMerror_mu1,'o:','DisplayName',"\mu_1 intrusive")
 ylabel("average ROM state error")
 xlabel("increasing dimension")
 set(gca, 'YScale', 'log')
