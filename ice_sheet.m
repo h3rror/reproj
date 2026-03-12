@@ -71,8 +71,8 @@ c2 = 2*gamma*rho^3*g^3/5; % 2.845713606598e7
 % f = @(x,u) c1*f3(x) + c2*f8(x);
 f = @(x,u) c1*F3(x,x,x) + c2*F8(x,x,x,x,x,x,x,x);
 
-% generatePODdata = true 
-generatePODdata = false
+generatePODdata = true 
+% generatePODdata = false
 if generatePODdata
 
     %% generate ROM basis construction data

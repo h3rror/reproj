@@ -383,6 +383,9 @@ deco.Omu1errors = zeros(nn,1);
 mono.Omu0errors = zeros(nn,1);
 mono.Omu1errors = zeros(nn,1);
 
+intr.Omu0errors = zeros(nn,1);
+intr.Omu1errors = zeros(nn,1);
+
 %% compute ROM state error
 Xmu0_FOM = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu0));
 Xmu1_FOM = simulate(x0,dt,nt,@(x) single_step(x,0,dt,f,mu1));
@@ -492,10 +495,13 @@ for j = 1:nn
     intr.Os = reshape(tA2s_(:),[n_, n_is_(1), s]);
 
     intr.Omu0_ = affine_op(intr.Os,theta_H(mu0));
+    intr.Omu0errors(j) = norm(intr.Omu0_-Omu0_,"fro")/norm(Omu0,"fro");
     intr.ROMmu0_step = @(x) x+ dt*intr.Omu0_*In_2*kron(x,x);
     % intr.ROMmu0_step = @(x) x+ dt*intr.Omu0_*x; % linear
     % ROMmu1_step = @(x) x+ dt*Omu1_*In_2*kron(x,x);
     intr.Omu1_ = affine_op(intr.Os,theta_H(mu1));
+    intr.Omu1errors(j) = norm(intr.Omu1_-Omu1_,"fro")/norm(Omu1,"fro");
+
     intr.ROMmu1_step = @(x) x+ dt*intr.Omu1_*In_2*kron(x,x);
     % intr.ROMmu1_step = @(x) x+ dt*intr.Omu1_*x; % linear
 
@@ -606,6 +612,9 @@ if monolithic
     semilogy(ns,mono.Omu0errors,'+--','DisplayName',"\mu_0 monolithic")
     semilogy(ns,mono.Omu1errors,'+--','DisplayName',"\mu_1 monolithic")
 end
+semilogy(ns,intr.Omu0errors,'o','DisplayName',"\mu_0 Taylor")
+semilogy(ns,intr.Omu1errors,'o','DisplayName',"\mu_1 Taylor")
+
 ylabel("operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
@@ -626,11 +635,11 @@ if monolithic
     semilogy(ns,mono.ROMerror_mu0,'+--','DisplayName',"\mu_0 monolithic")
     semilogy(ns,mono.ROMerror_mu1,'+--','DisplayName',"\mu_1 monolithic")
 end
-semilogy(ns,intr.ROMerror_mu0,'o','DisplayName',"\mu_0 intrusive")
-semilogy(ns,intr.ROMerror_mu1,'o','DisplayName',"\mu_1 intrusive")
+semilogy(ns,intr.ROMerror_mu0,'o','DisplayName',"\mu_0 Taylor")
+semilogy(ns,intr.ROMerror_mu1,'o','DisplayName',"\mu_1 Taylor")
 
 ylabel("average ROM state error")
-xlabel("increasing dimension")
+xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
 legend("show")

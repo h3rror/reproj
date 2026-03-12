@@ -617,7 +617,7 @@ semilogy(ns,intr.ROMerror_mu0,'o','DisplayName',"\mu_0 intrusive")
 semilogy(ns,intr.ROMerror_mu1,'o','DisplayName',"\mu_1 intrusive")
 
 ylabel("average ROM state error")
-xlabel("increasing dimension")
+xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
 grid on
 legend("show")
