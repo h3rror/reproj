@@ -556,11 +556,11 @@ semilogy(ns,sum(deco.O_errors,2)/qH,'x-', 'LineWidth', 2,'DisplayName',"decouple
 if monolithic
     semilogy(ns,sum(mono.O_errors,2)/qH,'+--', 'LineWidth', 2,'DisplayName',"monolithic")
 end
-ylabel("operator error")
-xlabel("ROM dimension")
+ylabel("operator error","Interpreter","latex","FontSize",12)
+xlabel("ROM dimension","Interpreter","latex","FontSize",12)
 set(gca, 'YScale', 'log')
 grid on
-legend("show","Location","southeast")
+legend("show","Location","southeast","Interpreter","latex","FontSize",12)
 % title("compares against Taylor approximation!")
 box on
 savefig("figures_piecewise/operator_errors.fig")
@@ -570,34 +570,37 @@ exportgraphics(gcf,"figures_piecewise/operator_errors.pdf")
 figure
 hold on
 if monolithic
-    semilogy(ns,mono.condsD,'x-', 'LineWidth', 2,'DisplayName',"monolithic")
+    semilogy(ns,mono.condsD,'x-', 'LineWidth', 2,'DisplayName',"monolithic $\mathbf D$")
 end
-semilogy(ns,sum(deco.condsD,2)/s,'x-', 'LineWidth', 2,'DisplayName',"decoupled")
+semilogy(ns,sum(deco.condsD,2)/s,'x-', 'LineWidth', 2,'DisplayName',"decoupled $\hat{\mathbf X}_2^T$")
+semilogy(ns,ones(size(ns))*cond(Theta_H),'x-', 'LineWidth', 2,'DisplayName',"decoupled $\mathbf\Theta_H$")
 % semilogy(n,sota.condsD, 'x-', 'LineWidth', 2,'DisplayName',"state of the art")
-ylabel("condition number")
-xlabel("ROM dimension")
+ylabel("condition number","Interpreter","latex","FontSize",12)
+xlabel("ROM dimension","Interpreter","latex","FontSize",12)
 set(gca, 'YScale', 'log')
 grid on
-legend("show","Location","east")
+legend("show","Location","southeast","Interpreter","latex","FontSize",12)
 % ylim([.8 30])
 box on
+set(gcf,'Position',[100 100 500 500])
+
 savefig("figures_piecewise/condition_numbers.fig")
 exportgraphics(gcf,"figures_piecewise/condition_numbers.pdf")
 
 
 figure
 hold on
-semilogy(ns,deco.Omu0errors,'x-','DisplayName',"\mu_0 decoupled")
-semilogy(ns,deco.Omu1errors,'x-','DisplayName',"\mu_1 decoupled")
+semilogy(ns,deco.Omu0errors,'x-','DisplayName',"$\mathbf\mu_0$ decoupled")
+semilogy(ns,deco.Omu1errors,'x-','DisplayName',"$\mathbf\mu_1$ decoupled")
 if monolithic
-    semilogy(ns,mono.Omu0errors,'+--','DisplayName',"\mu_0 monolithic")
-    semilogy(ns,mono.Omu1errors,'+--','DisplayName',"\mu_1 monolithic")
+    semilogy(ns,mono.Omu0errors,'+--','DisplayName',"$\mathbf\mu_0$ monolithic")
+    semilogy(ns,mono.Omu1errors,'+--','DisplayName',"$\mathbf\mu_1$ monolithic")
 end
-ylabel("operator error")
-xlabel("ROM dimension")
+ylabel("operator error","Interpreter","latex","FontSize",12)
+xlabel("ROM dimension","Interpreter","latex","FontSize",12)
 set(gca, 'YScale', 'log')
 grid on
-legend("show","Location","southeast")
+legend("show","Location","southeast","Interpreter","latex","FontSize",12)
 % title("compares against exact Gaussian!")
 box on
 set(gcf,'Position',[100 100 500 500])
@@ -607,20 +610,20 @@ exportgraphics(gcf,"figures_piecewise/operator_errors_evaluated.pdf")
 
 figure
 hold on
-semilogy(ns,deco.ROMerror_mu0,'x-','DisplayName',"\mu_0 decoupled")
-semilogy(ns,deco.ROMerror_mu1,'x-','DisplayName',"\mu_1 decoupled")
+semilogy(ns,deco.ROMerror_mu0,'x-','DisplayName',"$\mathbf\mu_0$ decoupled")
+semilogy(ns,deco.ROMerror_mu1,'x-','DisplayName',"$\mathbf\mu_1$ decoupled")
 if monolithic
-    semilogy(ns,mono.ROMerror_mu0,'+--','DisplayName',"\mu_0 monolithic")
-    semilogy(ns,mono.ROMerror_mu1,'+--','DisplayName',"\mu_1 monolithic")
+    semilogy(ns,mono.ROMerror_mu0,'+--','DisplayName',"$\mathbf\mu_0$ monolithic")
+    semilogy(ns,mono.ROMerror_mu1,'+--','DisplayName',"$\mathbf\mu_1$ monolithic")
 end
-semilogy(ns,intr.ROMerror_mu0,'o','DisplayName',"\mu_0 intrusive")
-semilogy(ns,intr.ROMerror_mu1,'o','DisplayName',"\mu_1 intrusive")
+semilogy(ns,intr.ROMerror_mu0,'o','DisplayName',"$\mathbf\mu_0$ intrusive")
+semilogy(ns,intr.ROMerror_mu1,'o','DisplayName',"$\mathbf\mu_1$ intrusive")
 
-ylabel("average ROM state error")
-xlabel("ROM dimension")
+ylabel("average ROM state error","Interpreter","latex","FontSize",12)
+xlabel("ROM dimension","Interpreter","latex","FontSize",12)
 set(gca, 'YScale', 'log')
 grid on
-legend("show")
+legend("show","Location","southwest","Interpreter","latex","FontSize",12)
 % title("ROM dim and Taylor dim increasing")
 % title("ROM dim increasing, Taylor dim = "+num2str(s))
 % title("ROM dim =" + num2str(n_) + ", Taylor dim increasing")
