@@ -57,11 +57,11 @@ xs = (1:N)/N;
 x0 = exp(-(xs-.5).^2);
 x0 = x0' ;
 
-u_val = @(t) 0;
+u_val = @(t) [];
 
 %% generate ROM basis construction data
 X_b = zeros(N,nt+1);
-U_b = zeros(1,nt+1);
+U_b = zeros(0,nt+1);
 
 t = 0;
 x = x0;
@@ -113,6 +113,12 @@ for i = 1:n
     plot(Vn(:,i))
 end
 legend("show")
+
+%% prepare standard opinf
+tX_b = Vn' *X_b;
+tX_b0 = tX_b(:,1:end-1);
+tX_b1 = tX_b(:,2:end);
+dot_tX_b = (tX_b1-tX_b0)/dt;
 
 %% construct intrusive operators
 tA1 = Vn'*A1*Vn;
@@ -167,6 +173,12 @@ A1_errors = zeros(nn,1);
 O_errors = zeros(nn,1);
 condsD = zeros(nn,1);
 
+s_O_errors = zeros(nn,1);
+s_condsD = zeros(nn,1);
+
+r_O_errors = zeros(nn,1);
+r_condsD = zeros(nn,1);
+
 h_ROM_state_error = zeros(nn,1);
 t_ROM_state_error = zeros(nn,1);
 
@@ -197,10 +209,34 @@ for j = 1:nn
 
     condsD(j) = condD;
 
-    computeROMStateError = true
+    %% compute standard opinf
+    [sO,~,~,s_condD] = opinf(dot_tX_b(1:n_,:),tX_b0(1:n_,:),U_b,is,true);
+
+    s_condsD(j) = s_condD;
+   
+    s_O_errors(j) = norm(sO-tO_,"fro")/norm(tO_,"fro");
+
+    %% compute data recycling opinf
+    tX_b0_ = tX_b0(1:n_,:);
+    [Q,R,P] = qr(tX_b0_,"econ");
+    [p,~] = find(P(:,1:n_));  
+    [rVn_,~,~] = svd(X_b(:,p),"econ");
+    rtO_ = rVn_'*A1*rVn_;
+
+    rtX_b0 = rVn_'*X_b(:,p);
+    rtX_b1 = rVn_'*X_b(:,p+1);
+    dot_rtX_b = (rtX_b1 - rtX_b0)/dt;
+    [rO,~,~,r_condD] = opinf(dot_rtX_b,rtX_b0,U_b(:,p),is,true);
+
+    r_condsD(j) = r_condD;
+   
+    r_O_errors(j) = norm(rO-rtO_,"fro")/norm(rtO_,"fro");
+    
+
+    %% compute avg ROM state error
+    computeROMStateError = true;
     % computeROMStateError = false
     if computeROMStateError
-        %% compute avg ROM state error
         Vn_ = Vn(:,1:n_);
         % [~,~,un_2] = reduced_coordinates(n_,2);
         % [~,~,un_3] = reduced_coordinates(n_,3);
@@ -210,40 +246,44 @@ for j = 1:nn
         % hf = @(hx,u) hO_*[u;hx;uniquepower(hx,2,un_2);uniquepower(hx,3,un_3)];
         hf = @(hx,u) hO_*hx;
 
-        tX_t = zeros(n_,nt+1);
-        hX_t = zeros(n_,nt+1);
-        % U_b = zeros(Nu,nt+1);
-        t = 0;
-        tx = Vn_'*x0;
-        hx = Vn_'*x0;
-        u = U_b(:,1);
+        t_ROM_state_error(j) = compute_avg_rom_state_error(Vn_'*x0,tf,nt,U_b,X_b,Vn_,dt);
+        h_ROM_state_error(j) = compute_avg_rom_state_error(Vn_'*x0,hf,nt,U_b,X_b,Vn_,dt);
 
-        tX_t(:,1) = tx;
-        hX_t(:,1) = hx;
-        % U_b(:,1) = u;
 
-        for i=1:nt
-            tx = single_step(tx,u,dt,tf);
-            hx = single_step(hx,u,dt,hf);
+        % tX_t = zeros(n_,nt+1);
+        % hX_t = zeros(n_,nt+1);
+        % % U_b = zeros(Nu,nt+1);
+        % t = 0;
+        % tx = Vn_'*x0;
+        % hx = Vn_'*x0;
+        % u = U_b(:,1);
+        % 
+        % tX_t(:,1) = tx;
+        % hX_t(:,1) = hx;
+        % % U_b(:,1) = u;
+        % 
+        % for i=1:nt
+        %     tx = single_step(tx,u,dt,tf);
+        %     hx = single_step(hx,u,dt,hf);
+        % 
+        %     t = t + dt;
+        %     u = U_b(:,i);
+        % 
+        %     tX_t(:,i+1) = tx;
+        %     hX_t(:,i+1) = hx;
+        % end
+        % 
+        % t_ROM_state_error(j) = norm(Vn_*tX_t - X_b,"fro")/norm(X_b,"fro");
+        % h_ROM_state_error(j) = norm(Vn_*hX_t - X_b,"fro")/norm(X_b,"fro");
 
-            t = t + dt;
-            u = U_b(:,i);
-
-            tX_t(:,i+1) = tx;
-            hX_t(:,i+1) = hx;
-        end
-
-        t_ROM_state_error(j) = norm(Vn_*tX_t - X_b,"fro")/norm(X_b,"fro");
-        h_ROM_state_error(j) = norm(Vn_*hX_t - X_b,"fro")/norm(X_b,"fro");
-
-        t_ROM_state_error(j) - compute_avg_rom_state_error(Vn_'*x0,tf,nt,U_b,X_b,Vn_,dt)
-        h_ROM_state_error(j) - compute_avg_rom_state_error(Vn_'*x0,hf,nt,U_b,X_b,Vn_,dt)
+        % t_ROM_state_error(j) - compute_avg_rom_state_error(Vn_'*x0,tf,nt,U_b,X_b,Vn_,dt)
+        % h_ROM_state_error(j) - compute_avg_rom_state_error(Vn_'*x0,hf,nt,U_b,X_b,Vn_,dt)
     end
 end
 
 figure
 hold on
-semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"O chafee-infante")
+semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"O exact snapshots")
 ylabel("relative operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
