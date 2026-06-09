@@ -11,8 +11,7 @@ N = 128;
 
 dx = 1/N;
 
-%% Chafee-Infante as in https://doi.org/10.1137/19M1292448 combined with 
-% setup of Allen-Cahn in https://doi.org/10.1016/j.cma.2022.115836
+%% 
 
 dt = 1e-5;
 % t_end = 4;
@@ -198,13 +197,13 @@ for j = 1:nn
 
     condsD(j) = condD;
 
-    % computeROMStateError = true
-    computeROMStateError = false
+    computeROMStateError = true
+    % computeROMStateError = false
     if computeROMStateError
         %% compute avg ROM state error
         Vn_ = Vn(:,1:n_);
-        [~,~,un_2] = reduced_coordinates(n_,2);
-        [~,~,un_3] = reduced_coordinates(n_,3);
+        % [~,~,un_2] = reduced_coordinates(n_,2);
+        % [~,~,un_3] = reduced_coordinates(n_,3);
         % tf = @(tx,u) tO_*[u;tx;uniquepower(tx,2,un_2);uniquepower(tx,3,un_3)];
         tf = @(tx,u) tO_*tx;
         hO_ = O;
@@ -236,6 +235,9 @@ for j = 1:nn
 
         t_ROM_state_error(j) = norm(Vn_*tX_t - X_b,"fro")/norm(X_b,"fro");
         h_ROM_state_error(j) = norm(Vn_*hX_t - X_b,"fro")/norm(X_b,"fro");
+
+        t_ROM_state_error(j) - compute_avg_rom_state_error(Vn_'*x0,tf,nt,U_b,X_b,Vn_,dt)
+        h_ROM_state_error(j) - compute_avg_rom_state_error(Vn_'*x0,hf,nt,U_b,X_b,Vn_,dt)
     end
 end
 
@@ -269,8 +271,8 @@ if computeROMStateError
 end
 
 
-%% FOM solver running for one time step
-function x_1 = single_step(x_0,u_0,dt,f)
-    x_1 = x_0 + dt*f(x_0,u_0);
-end
+% %% FOM solver running for one time step
+% function x_1 = single_step(x_0,u_0,dt,f)
+%     x_1 = x_0 + dt*f(x_0,u_0);
+% end
 
