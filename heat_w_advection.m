@@ -11,7 +11,7 @@ N = 128;
 
 dx = 1/N;
 
-%% heat equation with homogeneous Neumann BC
+%% 
 
 dt = 1e-5;
 % t_end = 4;
@@ -39,6 +39,7 @@ v_adv = 1/dx; % advection velocity: here tuned to be same order of magnitude as 
 A1_adv = v_adv*A1_adv/(2*dx);
 
 A1 = A1 + A1_adv;
+
 
 % % boundary conditions
 % BC = eye(N);
@@ -97,8 +98,6 @@ plot(X_b(:,10))
 plot(X_b(:,100))
 plot(X_b(:,end))
 
-legend("show")
-
 
 %% input signal plots
 % figure
@@ -107,7 +106,9 @@ legend("show")
 
 %% construct ROM basis via POD
 [V,S,~] = svd(X_b,'econ');
-n = 14;
+% n = 14;
+% n = 24;
+n = 40;
 Vn = V(:,1:n);
 
 %% singular value decay
@@ -165,6 +166,7 @@ end
 
 % compute time step estimate (3.10)
 dt1 = dt_estimate(X_b,U_b,Vn(:,1),dt,is);
+% dt1 = dt
 
 for i = 1:nf
     tX1(:,i) = Vn'*single_step(Vn*tX0(:,i),U0(:,i),dt1,f);
@@ -190,6 +192,8 @@ r_condsD = zeros(nn,1);
 
 h_ROM_state_error = zeros(nn,1);
 t_ROM_state_error = zeros(nn,1);
+s_ROM_state_error = zeros(nn,1);
+r_ROM_state_error = zeros(nn,1);
 
 n_is__ = n_is(n,is);
 offset = cumsum(n_is__);
@@ -219,11 +223,11 @@ for j = 1:nn
     condsD(j) = condD;
 
     %% compute standard opinf
-    [sO,~,~,s_condD] = opinf(dot_tX_b(1:n_,:),tX_b0(1:n_,:),U_b,is,true);
+    [sO_,~,~,s_condD] = opinf(dot_tX_b(1:n_,:),tX_b0(1:n_,:),U_b,is,true);
 
     s_condsD(j) = s_condD;
    
-    s_O_errors(j) = norm(sO-tO_,"fro")/norm(tO_,"fro");
+    s_O_errors(j) = norm(sO_-tO_,"fro")/norm(tO_,"fro");
 
     %% compute data recycling opinf
     tX_b0_ = tX_b0(1:n_,:);
@@ -235,11 +239,11 @@ for j = 1:nn
     rtX_b0 = rVn_'*X_b(:,p);
     rtX_b1 = rVn_'*X_b(:,p+1);
     dot_rtX_b = (rtX_b1 - rtX_b0)/dt;
-    [rO,~,~,r_condD] = opinf(dot_rtX_b,rtX_b0,U_b(:,p),is,true);
+    [rO_,~,~,r_condD] = opinf(dot_rtX_b,rtX_b0,U_b(:,p),is,true);
 
     r_condsD(j) = r_condD;
    
-    r_O_errors(j) = norm(rO-rtO_,"fro")/norm(rtO_,"fro");
+    r_O_errors(j) = norm(rO_-rtO_,"fro")/norm(rtO_,"fro");
     
 
     %% compute avg ROM state error
@@ -255,8 +259,13 @@ for j = 1:nn
         % hf = @(hx,u) hO_*[u;hx;uniquepower(hx,2,un_2);uniquepower(hx,3,un_3)];
         hf = @(hx,u) hO_*hx;
 
+        sf = @(x,u) sO_*x;
+        rf = @(x,u) rO_*x;
+
         t_ROM_state_error(j) = compute_avg_rom_state_error(Vn_'*x0,tf,nt,U_b,X_b,Vn_,dt);
         h_ROM_state_error(j) = compute_avg_rom_state_error(Vn_'*x0,hf,nt,U_b,X_b,Vn_,dt);
+        s_ROM_state_error(j) = compute_avg_rom_state_error(Vn_'*x0,sf,nt,U_b,X_b,Vn_,dt);
+        r_ROM_state_error(j) = compute_avg_rom_state_error(rVn_'*x0,rf,nt,U_b,X_b,rVn_,dt);
 
 
         % tX_t = zeros(n_,nt+1);
@@ -292,7 +301,9 @@ end
 
 figure
 hold on
-semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"O exact snapshots")
+semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"O exact opinf")
+semilogy(ns,s_O_errors,'x-', 'LineWidth', 2,'DisplayName',"O standard opinf")
+semilogy(ns,r_O_errors,'x-', 'LineWidth', 2,'DisplayName',"O data recycling")
 ylabel("relative operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
@@ -300,13 +311,27 @@ set(gca, 'YScale', 'log')
 legend("show")
 box on
 
-save("data/data_chafee_infante","O_errors","condsD");
+figure
+hold on
+semilogy(ns,condsD,'x-', 'LineWidth', 2,'DisplayName',"O exact opinf")
+semilogy(ns,s_condsD,'x-', 'LineWidth', 2,'DisplayName',"O standard opinf")
+semilogy(ns,r_condsD,'x-', 'LineWidth', 2,'DisplayName',"O data recycling")
+ylabel("condition number")
+xlabel("ROM dimension")
+set(gca, 'YScale', 'log')
+
+legend("show")
+box on
+
+% save("data_heat","O_errors","condsD");
 
 if computeROMStateError
     figure
     hold on
     semilogy(ns,h_ROM_state_error,'x-', 'LineWidth', 2,'DisplayName',"exactOpInf", "MarkerSize",10)
     semilogy(ns,t_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive", "MarkerSize",10)
+    semilogy(ns,s_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"standard OpInf", "MarkerSize",10)
+    semilogy(ns,r_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"data recycling", "MarkerSize",10)
     ylabel("avg rel error of states","Interpreter","latex", "FontSize",15)
     xlabel("ROM dimension","Interpreter","latex", "FontSize",15)
     set(gca, 'YScale', 'log')
@@ -315,8 +340,8 @@ if computeROMStateError
     legend("Location","northeast")
     % ylim([1e-17 1e-15])
     box on
-    savefig("figures/rom_state_error_chafee_infante.fig")
-    exportgraphics(gcf,"figures/rom_state_error_chafee_infante.pdf")
+    % savefig("figures/rom_state_error_chafee_infante.fig")
+    % exportgraphics(gcf,"figures/rom_state_error_chafee_infante.pdf")
 end
 
 
