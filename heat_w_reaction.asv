@@ -32,6 +32,9 @@ A1(1,1) = -1;
 A1(end,end) = -1;
 A1 = A1/dx^2;
 
+reac = 1/d
+A1 = A1+reac*eye(N); % reaction term
+
 
 % % boundary conditions
 % BC = eye(N);
