@@ -28,36 +28,18 @@ Nu = 0;
 A1 = diag(ones(N-1,1),-1) -eye(N);
 A1 = (A1+A1');
 
-bc_type = "periodic"
-% bc_type = "hom_Neumann"
-
-if bc_type == "hom_Neumann"
-    %% homogeneous Neumann BC
-    A1(1,1) = -1;
-    A1(end,end) = -1;
-elseif bc_type == "periodic"
-    %% periodic BC
-    A1(1,end) = 1;
-    A1(end,1) = 1;
-else
-    error("unknown bc_type")
-    %%
-end
+%% homogeneous Neumann BC
+A1(1,1) = -1;
+A1(end,end) = -1;
+%% periodic BC
+A1(1,end) = 1;
+A1(end,1) = 1;
+%%
 A1 = A1/dx^2;
 
 A1_adv = diag(ones(N-1,1),-1) - diag(ones(N-1,1),1);
-if bc_type == "hom_Neumann"
-    %% homogeneous Neumann BC
-    A1_adv(1,1) = 1;
-    A1_adv(end,end) = -1;
-elseif bc_type == "periodic"
-    %% periodic BC
-    A1_adv(1,end) = 1;
-    A1_adv(end,1) = -1;
-else
-    error("unknown bc_type")
-    %%
-end
+A1_adv(1,1) = 1;
+A1_adv(end,end) = -1;
 v_adv = 1/dx; % advection velocity: here tuned to be same order of magnitude as diffusion
 A1_adv = v_adv*A1_adv/(2*dx);
 
