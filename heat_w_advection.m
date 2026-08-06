@@ -14,36 +14,41 @@ dx = 1/N;
 %% 
 
 dt = 1e-5;
+% dt = 1e-2;
+% dt = .5*dx;
+% dt = .25*dx;
 % t_end = 4;
 % t_end = 1;
 % t_end = 2;
-t_end = 0.1;
+% t_end = 0.1;
 % t_end = 1*dt;
-% t_end = 20*dt;
+% t_end = 200*dt;
+% t_end = 1000*dt;
+t_end = 10000*dt;
 nt = round(t_end/dt);
 
 is = [1];
 Nu = 0;
 
-A1 = diag(ones(N-1,1),-1) -eye(N);
-A1 = (A1+A1');
+A1_diff = diag(ones(N-1,1),-1) -eye(N);
+A1_diff = (A1_diff+A1_diff');
 
 bc_type = "periodic"
 % bc_type = "hom_Neumann"
 
 if bc_type == "hom_Neumann"
     %% homogeneous Neumann BC
-    A1(1,1) = -1;
-    A1(end,end) = -1;
+    A1_diff(1,1) = -1;
+    A1_diff(end,end) = -1;
 elseif bc_type == "periodic"
     %% periodic BC
-    A1(1,end) = 1;
-    A1(end,1) = 1;
+    A1_diff(1,end) = 1;
+    A1_diff(end,1) = 1;
 else
     error("unknown bc_type")
     %%
 end
-A1 = A1/dx^2;
+A1_diff = A1_diff/dx^2;
 
 A1_adv = diag(ones(N-1,1),-1) - diag(ones(N-1,1),1);
 if bc_type == "hom_Neumann"
@@ -61,8 +66,22 @@ end
 v_adv = 1/dx; % advection velocity: here tuned to be same order of magnitude as diffusion
 A1_adv = v_adv*A1_adv/(2*dx);
 
-A1 = A1 + A1_adv;
+% nu = 1;
+% nu = 0;
+nu = 0.1;
+A1 = nu*A1_diff + A1_adv;
 
+A1_upw = diag(ones(N-1,1),-1) - eye(N);
+if bc_type == "periodic"
+    %% periodic BC
+    A1_upw(1,end) = 1;
+else
+    error("unknown bc_type")
+    %%
+end
+A1_upw = A1_upw/dx;
+
+% A1 = A1_upw;
 
 % % boundary conditions
 % BC = eye(N);
@@ -85,7 +104,7 @@ f = @(x,u) F1(x);
 
 % x0 = zeros(N,1);
 xs = (1:N)/N;
-x0 = exp(-(xs-.5).^2);
+x0 = exp(-(40*(xs-.5)).^2);
 x0 = x0' ;
 
 u_val = @(t) [];
@@ -120,7 +139,7 @@ plot(X_b(:,5))
 plot(X_b(:,10))
 plot(X_b(:,100))
 plot(X_b(:,end))
-
+legend("show")
 
 %% input signal plots
 % figure
@@ -353,7 +372,7 @@ if computeROMStateError
     hold on
     semilogy(ns,h_ROM_state_error,'x-', 'LineWidth', 2,'DisplayName',"exactOpInf", "MarkerSize",10)
     semilogy(ns,t_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive", "MarkerSize",10)
-    semilogy(ns,s_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"standard OpInf", "MarkerSize",10)
+    semilogy(ns,s_ROM_state_error,'o:', 'LineWidth', 2,'DisplayName',"standard OpInf", "MarkerSize",10)
     semilogy(ns,r_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"data recycling", "MarkerSize",10)
     ylabel("avg rel error of states","Interpreter","latex", "FontSize",15)
     xlabel("ROM dimension","Interpreter","latex", "FontSize",15)
