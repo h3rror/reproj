@@ -123,6 +123,9 @@ C_vec = C(:);          % vectorize the field: C_vec = C(:)
 
 figure('Color','w','Position',[100 100 800 650]);
 
+N = Nx*Ny;
+X_b = zeros(N,Nt);
+
 t = 0;
 for n = 1:Nt
 
@@ -131,6 +134,8 @@ for n = 1:Nt
     % -----------------------------------------
 
     t = t + dt;
+
+    X_b(:,n);
 
     if mod(n, plot_every) == 0 || n == Nt
         C = reshape(C_vec, Ny, Nx);
@@ -147,6 +152,18 @@ end
 
 C = reshape(C_vec, Ny, Nx);
 fprintf('Simulation complete. Final time t = %.4g s\n', t);
+
+%% construct ROM basis via POD
+[V,S,~] = svd(X_b,'econ');
+% n = 14;
+% n = 24;
+n = 40;
+Vn = V(:,1:n);
+
+%% singular value decay
+figure
+semilogy(diag(S)/S(1,1))
+title("singular value decay")
 
 %% ------------------- Optional: compare initial vs final ----------------
 figure('Color','w');

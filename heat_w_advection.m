@@ -67,8 +67,9 @@ v_adv = 1/dx; % advection velocity: here tuned to be same order of magnitude as 
 A1_adv = v_adv*A1_adv/(2*dx);
 
 % nu = 1;
+nu = .5;
 % nu = 0;
-nu = 0.1;
+% nu = 0.1;
 A1 = nu*A1_diff + A1_adv;
 
 A1_upw = diag(ones(N-1,1),-1) - eye(N);
@@ -147,7 +148,10 @@ legend("show")
 % plot(U_b)
 
 %% construct ROM basis via POD
-[V,S,~] = svd(X_b,'econ');
+snapshot_stride = 1;
+inds = 1:snapshot_stride:size(X_b,2);
+
+[V,S,~] = svd(X_b(:,inds),'econ');
 % n = 14;
 % n = 24;
 n = 40;

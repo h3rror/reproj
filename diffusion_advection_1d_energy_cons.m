@@ -45,7 +45,8 @@ D  = 0;         % diffusion coefficient [m^2/s]
 u  = 1.0;          % advection velocity [m/s]
 
 T_final = 2.0;     % total simulation time [s]
-dt = 0.01;         % time step [s] -- can be chosen freely for stability;
+% dt = 0.01;         % time step [s] -- can be chosen freely for stability;
+% dt = 0.001;         % time step [s] -- can be chosen freely for stability;
                     % (accuracy still degrades if dt is too large)
 
 plot_every = 20;    % plot update frequency (in time steps)
@@ -53,6 +54,8 @@ plot_every = 20;    % plot update frequency (in time steps)
 %% ------------------- Grid setup (periodic) -----------------------------
 x  = linspace(0, L, N+1); x(end) = [];   % N points on [0, L)
 dx = x(2) - x(1);
+
+dt = .5*dx;
 
 %% ------------------- Initial condition ----------------------------------
 x0 = 0.5*L;
@@ -160,3 +163,4 @@ plot(X_b(:,3))
 plot(X_b(:,5))
 plot(X_b(:,10))
 plot(X_b(:,100))
+plot(X_b(:,end))

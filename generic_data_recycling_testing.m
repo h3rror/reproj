@@ -5,95 +5,17 @@ rng(1); % for reproducibility
 
 addpath('source/');
 
-N = 128;
-% N = 12;
-% N = 64;
-
-dx = 1/N;
-
 %% 
-
-dt = 1e-5;
-% dt = 1e-2;
-% dt = .5*dx;
-% dt = .25*dx;
-% t_end = 4;
-% t_end = 1;
-% t_end = 2;
-% t_end = 0.1;
-% t_end = 1*dt;
-% t_end = 200*dt;
-% t_end = 1000*dt;
-t_end = 10000*dt;
-nt = round(t_end/dt);
 
 is = [1];
 Nu = 0;
 
-A1_diff = diag(ones(N-1,1),-1) -eye(N);
-A1_diff = (A1_diff+A1_diff');
-
-bc_type = "periodic"
-% bc_type = "hom_Neumann"
-
-if bc_type == "hom_Neumann"
-    %% homogeneous Neumann BC
-    A1_diff(1,1) = -1;
-    A1_diff(end,end) = -1;
-elseif bc_type == "periodic"
-    %% periodic BC
-    A1_diff(1,end) = 1;
-    A1_diff(end,1) = 1;
-else
-    error("unknown bc_type")
-    %%
-end
-A1_diff = A1_diff/dx^2;
-
-A1_adv = diag(ones(N-1,1),-1) - diag(ones(N-1,1),1);
-if bc_type == "hom_Neumann"
-    %% homogeneous Neumann BC
-    A1_adv(1,1) = 1;
-    A1_adv(end,end) = -1;
-elseif bc_type == "periodic"
-    %% periodic BC
-    A1_adv(1,end) = 1;
-    A1_adv(end,1) = -1;
-else
-    error("unknown bc_type")
-    %%
-end
-v_adv = 1/dx; % advection velocity: here tuned to be same order of magnitude as diffusion
-A1_adv = v_adv*A1_adv/(2*dx);
-
-nu = 1;
-% nu = 0;
-% nu = 0.1;
-A1 = nu*A1_diff + A1_adv;
-
-A1_upw = diag(ones(N-1,1),-1) - eye(N);
-if bc_type == "periodic"
-    %% periodic BC
-    A1_upw(1,end) = 1;
-else
-    error("unknown bc_type")
-    %%
-end
-A1_upw = A1_upw/dx;
-
-% A1 = A1_upw;
-
-% % boundary conditions
-% BC = eye(N);
-% 
-% % x(0,t) = u(t)
-% A1(1,:) = 0;
-% A1(1,1) = -1/dt;
-% BC(1,:) = 0;
-% 
-% % ddxi x(1,t) = 0
-% A1(end,end) = -1/dx^2 + 1;
-
+%% insert script
+assemble_A_advection_diffusion_2d;
+A1 = A;
+x0 = C0_vec;
+N = Nx*Ny;
+nt = Nt;
 
 
 F1 = @(x1) A1*x1;
@@ -110,24 +32,7 @@ x0 = x0' ;
 u_val = @(t) [];
 
 %% generate ROM basis construction data
-X_b = zeros(N,nt+1);
-U_b = zeros(0,nt+1);
-
-t = 0;
-x = x0;
-u = u_val(t);
-
-X_b(:,1) = x0;
-U_b(:,1) = u;
-
-for i=1:nt
-    x = x + dt*f(x,u);
-    t = t + dt;
-    u = u_val(t);
-
-    X_b(:,i+1) = x;
-    U_b(:,i+1) = u;
-end
+[X_b,U_b] = gen_FOM_data(x0,u_val,f,nt,N,dt);
 
 
 %% state plots
@@ -147,10 +52,10 @@ legend("show")
 % plot(U_b)
 
 %% construct ROM basis via POD
-snapshot_stride = 2;
-inds = linspace(1,size(X_b,2),floor(snapshot_stride);
+snapshot_stride = 1;
+inds = 1:snapshot_stride:size(X_b,2);
 
-[V,S,~] = svd(X_b(:,snapshot_stride),'econ');
+[V,S,~] = svd(X_b(:,inds),'econ');
 % n = 14;
 % n = 24;
 n = 40;
@@ -296,52 +201,37 @@ for j = 1:nn
     % computeROMStateError = false
     if computeROMStateError
         Vn_ = Vn(:,1:n_);
-        % [~,~,un_2] = reduced_coordinates(n_,2);
-        % [~,~,un_3] = reduced_coordinates(n_,3);
-        % tf = @(tx,u) tO_*[u;tx;uniquepower(tx,2,un_2);uniquepower(tx,3,un_3)];
         tf = @(tx,u) tO_*tx;
         hO_ = O;
-        % hf = @(hx,u) hO_*[u;hx;uniquepower(hx,2,un_2);uniquepower(hx,3,un_3)];
         hf = @(hx,u) hO_*hx;
 
         sf = @(x,u) sO_*x;
         rf = @(x,u) rO_*x;
 
-        t_ROM_state_error(j) = compute_avg_rom_state_error(Vn_'*x0,tf,nt,U_b,X_b,Vn_,dt);
-        h_ROM_state_error(j) = compute_avg_rom_state_error(Vn_'*x0,hf,nt,U_b,X_b,Vn_,dt);
-        s_ROM_state_error(j) = compute_avg_rom_state_error(Vn_'*x0,sf,nt,U_b,X_b,Vn_,dt);
-        r_ROM_state_error(j) = compute_avg_rom_state_error(rVn_'*x0,rf,nt,U_b,X_b,rVn_,dt);
+        % test_type = "train"
+        test_type = "worst-case"
 
+        if test_type == "train"
+        x0_r = Vn_'*x0;
+        x0_r2 = rVn_'*x0;
+        X_t = X_b;
+        %% compute avg ROM state error for worst-case initial condition
+        elseif test_type == "worst-case"
+        [sx0_wc,~,~] = svds(tO_-sO_,1); 
+        x0_r = sx0_wc;
+        X_t = gen_FOM_data(Vn_*x0_r,u_val,f,nt,N,dt); 
+        x0_r2 = rVn_'*Vn_*x0_r;
+        else
+            error("unknown test_type")
+        end
+        %%
 
-        % tX_t = zeros(n_,nt+1);
-        % hX_t = zeros(n_,nt+1);
-        % % U_b = zeros(Nu,nt+1);
-        % t = 0;
-        % tx = Vn_'*x0;
-        % hx = Vn_'*x0;
-        % u = U_b(:,1);
-        % 
-        % tX_t(:,1) = tx;
-        % hX_t(:,1) = hx;
-        % % U_b(:,1) = u;
-        % 
-        % for i=1:nt
-        %     tx = single_step(tx,u,dt,tf);
-        %     hx = single_step(hx,u,dt,hf);
-        % 
-        %     t = t + dt;
-        %     u = U_b(:,i);
-        % 
-        %     tX_t(:,i+1) = tx;
-        %     hX_t(:,i+1) = hx;
-        % end
-        % 
-        % t_ROM_state_error(j) = norm(Vn_*tX_t - X_b,"fro")/norm(X_b,"fro");
-        % h_ROM_state_error(j) = norm(Vn_*hX_t - X_b,"fro")/norm(X_b,"fro");
+        t_ROM_state_error(j) = compute_avg_rom_state_error(x0_r,tf,nt,U_b,X_t,Vn_,dt);
+        h_ROM_state_error(j) = compute_avg_rom_state_error(x0_r,hf,nt,U_b,X_t,Vn_,dt);
+        s_ROM_state_error(j) = compute_avg_rom_state_error(x0_r,sf,nt,U_b,X_t,Vn_,dt);
 
-        % t_ROM_state_error(j) - compute_avg_rom_state_error(Vn_'*x0,tf,nt,U_b,X_b,Vn_,dt)
-        % h_ROM_state_error(j) - compute_avg_rom_state_error(Vn_'*x0,hf,nt,U_b,X_b,Vn_,dt)
-    end
+        r_ROM_state_error(j) = compute_avg_rom_state_error(x0_r2,rf,nt,U_b,X_t,rVn_,dt);  
+    end    
 end
 
 figure
