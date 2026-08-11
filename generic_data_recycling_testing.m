@@ -145,6 +145,10 @@ t_ROM_state_error = zeros(nn,1);
 s_ROM_state_error = zeros(nn,1);
 r_ROM_state_error = zeros(nn,1);
 
+best_approx_error_POD = zeros(nn,1);
+best_approx_error_mPOD = zeros(nn,1);
+
+
 n_is__ = n_is(n,is);
 offset = cumsum(n_is__);
 
@@ -208,8 +212,8 @@ for j = 1:nn
         sf = @(x,u) sO_*x;
         rf = @(x,u) rO_*x;
 
-        % test_type = "train"
-        test_type = "worst-case"
+        test_type = "train"
+        % test_type = "worst-case"
 
         if test_type == "train"
         x0_r = Vn_'*x0;
@@ -231,6 +235,10 @@ for j = 1:nn
         s_ROM_state_error(j) = compute_avg_rom_state_error(x0_r,sf,nt,U_b,X_t,Vn_,dt);
 
         r_ROM_state_error(j) = compute_avg_rom_state_error(x0_r2,rf,nt,U_b,X_t,rVn_,dt);  
+        
+        best_approx_error_POD(j)  = norm(Vn_*Vn_'*X_b - X_b,"fro")/norm(X_b,"fro");
+        best_approx_error_mPOD(j) = norm(rVn_*rVn_'*X_b - X_b,"fro")/norm(X_b,"fro");
+        
     end    
 end
 
@@ -267,6 +275,8 @@ if computeROMStateError
     semilogy(ns,t_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive", "MarkerSize",10)
     semilogy(ns,s_ROM_state_error,'o:', 'LineWidth', 2,'DisplayName',"standard OpInf", "MarkerSize",10)
     semilogy(ns,r_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"data recycling", "MarkerSize",10)
+    semilogy(ns,best_approx_error_POD,'-.', 'LineWidth', 2,'DisplayName',"best approx error POD", "MarkerSize",10)
+    semilogy(ns,best_approx_error_mPOD,'-.', 'LineWidth', 2,'DisplayName',"best approx error manipulated POD", "MarkerSize",10)
     ylabel("avg rel error of states","Interpreter","latex", "FontSize",15)
     xlabel("ROM dimension","Interpreter","latex", "FontSize",15)
     set(gca, 'YScale', 'log')
