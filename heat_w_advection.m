@@ -33,8 +33,9 @@ Nu = 0;
 A1_diff = diag(ones(N-1,1),-1) -eye(N);
 A1_diff = (A1_diff+A1_diff');
 
-bc_type = "periodic"
+% bc_type = "periodic"
 % bc_type = "hom_Neumann"
+bc_type = "Dirichlet10"
 
 if bc_type == "hom_Neumann"
     %% homogeneous Neumann BC
@@ -44,6 +45,9 @@ elseif bc_type == "periodic"
     %% periodic BC
     A1_diff(1,end) = 1;
     A1_diff(end,1) = 1;
+elseif bc_type =="Dirichlet10"
+    %% Dirichlet BC: left 1, right 0
+    A1_diff(1,:) = 0;
 else
     error("unknown bc_type")
     %%
@@ -59,28 +63,34 @@ elseif bc_type == "periodic"
     %% periodic BC
     A1_adv(1,end) = 1;
     A1_adv(end,1) = -1;
+elseif bc_type =="Dirichlet10"
+    %% Dirichlet BC: left 1, right 0
+    A1_adv(1,:) = 0;
 else
     error("unknown bc_type")
     %%
 end
-v_adv = 1/dx; % advection velocity: here tuned to be same order of magnitude as diffusion
+% v_adv = 1/dx; % advection velocity: here tuned to be same order of magnitude as diffusion
+v_adv = 1; % advection velocity: here tuned to be same order of magnitude as diffusion
 A1_adv = v_adv*A1_adv/(2*dx);
 
 % nu = 1;
-nu = .5;
+nu = .5*dx;
 % nu = 0;
 % nu = 0.1;
 A1 = nu*A1_diff + A1_adv;
 
-A1_upw = diag(ones(N-1,1),-1) - eye(N);
-if bc_type == "periodic"
-    %% periodic BC
-    A1_upw(1,end) = 1;
-else
-    error("unknown bc_type")
-    %%
-end
-A1_upw = A1_upw/dx;
+%% alternative: upwinding
+% A1_upw = diag(ones(N-1,1),-1) - eye(N);
+% if bc_type == "periodic"
+%     %% periodic BC
+%     A1_upw(1,end) = 1;
+% else
+%     error("unknown bc_type")
+%     %%
+% end
+% A1_upw = A1_upw/dx;
+%%
 
 % A1 = A1_upw;
 
@@ -105,7 +115,9 @@ f = @(x,u) F1(x);
 
 % x0 = zeros(N,1);
 xs = (1:N)/N;
-x0 = exp(-(40*(xs-.5)).^2);
+% x0 = exp(-(40*(xs-.5)).^2);
+x0 = 0*xs;
+x0(1) = 1;
 x0 = x0' ;
 
 u_val = @(t) [];

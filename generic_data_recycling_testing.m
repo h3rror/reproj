@@ -212,8 +212,8 @@ for j = 1:nn
         sf = @(x,u) sO_*x;
         rf = @(x,u) rO_*x;
 
-        test_type = "train"
-        % test_type = "worst-case"
+        % test_type = "train"
+        test_type = "worst-case"
 
         if test_type == "train"
         x0_r = Vn_'*x0;
@@ -222,6 +222,8 @@ for j = 1:nn
         %% compute avg ROM state error for worst-case initial condition
         elseif test_type == "worst-case"
         [sx0_wc,~,~] = svds(tO_-sO_,1); 
+                sx0_wc = Vn_'*x0; % botch!!!
+
         x0_r = sx0_wc;
         X_t = gen_FOM_data(Vn_*x0_r,u_val,f,nt,N,dt); 
         x0_r2 = rVn_'*Vn_*x0_r;
@@ -230,14 +232,14 @@ for j = 1:nn
         end
         %%
 
-        t_ROM_state_error(j) = compute_avg_rom_state_error(x0_r,tf,nt,U_b,X_t,Vn_,dt);
+        [t_ROM_state_error(j),tX_test] = compute_avg_rom_state_error(x0_r,tf,nt,U_b,X_t,Vn_,dt);
         h_ROM_state_error(j) = compute_avg_rom_state_error(x0_r,hf,nt,U_b,X_t,Vn_,dt);
         s_ROM_state_error(j) = compute_avg_rom_state_error(x0_r,sf,nt,U_b,X_t,Vn_,dt);
 
         r_ROM_state_error(j) = compute_avg_rom_state_error(x0_r2,rf,nt,U_b,X_t,rVn_,dt);  
         
-        best_approx_error_POD(j)  = norm(Vn_*Vn_'*X_b - X_b,"fro")/norm(X_b,"fro");
-        best_approx_error_mPOD(j) = norm(rVn_*rVn_'*X_b - X_b,"fro")/norm(X_b,"fro");
+        best_approx_error_POD(j)  = norm(Vn_*Vn_'*X_t - X_t,"fro")/norm(X_t,"fro");
+        best_approx_error_mPOD(j) = norm(rVn_*rVn_'*X_t - X_t,"fro")/norm(X_t,"fro");
         
     end    
 end
@@ -288,6 +290,21 @@ if computeROMStateError
     % savefig("figures/rom_state_error_chafee_infante.fig")
     % exportgraphics(gcf,"figures/rom_state_error_chafee_infante.pdf")
 end
+
+%% plot projection error of snapshots
+rel_proj_errors = vecwise_2norm(Vn*Vn'*X_b-X_b)./vecwise_2norm(X_b);
+figure; plot(rel_proj_errors,"DisplayName", "all snapshots")
+hold on
+plot(rel_proj_errors,"sr","MarkerIndices",p,"DisplayName","recycled snapshots")
+
+    ylabel("relative projection error","Interpreter","latex", "FontSize",15)
+    xlabel("snapshot index","Interpreter","latex", "FontSize",15)
+    set(gca, 'YScale', 'log')
+    grid on
+    legend("show","Interpreter","latex", "FontSize",12)
+    legend("Location","northeast")
+    % ylim([1e-17 1e-15])
+    box on
 
 
 % %% FOM solver running for one time step

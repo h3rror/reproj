@@ -42,11 +42,17 @@ bc_type = 'periodic';   % 'dirichlet' or 'periodic'
 snapshot_stride  = 10;      % store every k-th FOM time step as a snapshot
 % subtract_mean    = true;   % POD on fluctuations about the temporal mean
 subtract_mean    = false;   % POD on fluctuations about the temporal mean
-r_modes          = 12;     % number of POD modes to keep in the ROM
+% r_modes          = 12;     % number of POD modes to keep in the ROM
+r_modes          = 40;     % number of POD modes to keep in the ROM
                             % (set to [] to instead pick r from energy_threshold)
 energy_threshold = 0.9999; % used only if r_modes = []
 
 plot_every = 20;    % FOM field plot update frequency (in time steps)
+
+% nu = 1;
+dx = Lx/Nx;
+nu = dx*u/2;
+% nu = 0;
 
 %% ------------------- Grid setup --------------------------------------
 if strcmp(bc_type, 'periodic')
@@ -91,8 +97,7 @@ else
 end
 
 Ix = speye(Nx); Iy = speye(Ny);
-nu = 1;
-% nu = 0;
+
 A = -u*kron(D1x, Iy) - v*kron(Ix, D1y) + nu*(D*(kron(D2x, Iy) + kron(Ix, D2y)));
 
 if strcmp(bc_type, 'dirichlet')

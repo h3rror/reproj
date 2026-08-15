@@ -44,6 +44,8 @@ elseif bc_type == "periodic"
     %% periodic BC
     A1_diff(1,end) = 1;
     A1_diff(end,1) = 1;
+elseif bc_type =="Dirichlet10"
+    A1_diff(1,end)
 else
     error("unknown bc_type")
     %%
@@ -66,7 +68,8 @@ end
 v_adv = 1/dx; % advection velocity: here tuned to be same order of magnitude as diffusion
 A1_adv = v_adv*A1_adv/(2*dx);
 
-nu = 1;
+% nu = 1;
+nu = .5;
 % nu = 0;
 % nu = 0.1;
 A1 = nu*A1_diff + A1_adv;
@@ -147,10 +150,10 @@ legend("show")
 % plot(U_b)
 
 %% construct ROM basis via POD
-snapshot_stride = 2;
-inds = linspace(1,size(X_b,2),floor(snapshot_stride);
+snapshot_stride = 1;
+inds = 1:snapshot_stride:size(X_b,2);
 
-[V,S,~] = svd(X_b(:,snapshot_stride),'econ');
+[V,S,~] = svd(X_b(:,inds),'econ');
 % n = 14;
 % n = 24;
 n = 40;
