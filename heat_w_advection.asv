@@ -13,28 +13,15 @@ dx = 1/N;
 
 %% 
 
-dt = 1e-5;
-% dt = 1e-2;
-% dt = .5*dx;
-% dt = .25*dx;
-% t_end = 4;
-% t_end = 1;
-% t_end = 2;
-% t_end = 0.1;
-% t_end = 1*dt;
-% t_end = 200*dt;
-% t_end = 1000*dt;
-t_end = 10000*dt;
-nt = round(t_end/dt);
-
 is = [1];
 Nu = 0;
 
 A1_diff = diag(ones(N-1,1),-1) -eye(N);
 A1_diff = (A1_diff+A1_diff');
 
-bc_type = "periodic"
+% bc_type = "periodic"
 % bc_type = "hom_Neumann"
+bc_type = "Dirichlet10"
 
 if bc_type == "hom_Neumann"
     %% homogeneous Neumann BC
@@ -45,7 +32,8 @@ elseif bc_type == "periodic"
     A1_diff(1,end) = 1;
     A1_diff(end,1) = 1;
 elseif bc_type =="Dirichlet10"
-    A1_diff(1,end)
+    %% Dirichlet BC: left 1, right 0
+    A1_diff(1,:) = 0;
 else
     error("unknown bc_type")
     %%
@@ -61,28 +49,34 @@ elseif bc_type == "periodic"
     %% periodic BC
     A1_adv(1,end) = 1;
     A1_adv(end,1) = -1;
+elseif bc_type =="Dirichlet10"
+    %% Dirichlet BC: left 1, right 0
+    A1_adv(1,:) = 0;
 else
     error("unknown bc_type")
     %%
 end
-v_adv = 1/dx; % advection velocity: here tuned to be same order of magnitude as diffusion
+% v_adv = 1/dx; % advection velocity: here tuned to be same order of magnitude as diffusion
+v_adv = 1; % advection velocity: here tuned to be same order of magnitude as diffusion
 A1_adv = v_adv*A1_adv/(2*dx);
 
 % nu = 1;
-nu = .5;
+nu = .5*dx;
 % nu = 0;
 % nu = 0.1;
 A1 = nu*A1_diff + A1_adv;
 
-A1_upw = diag(ones(N-1,1),-1) - eye(N);
-if bc_type == "periodic"
-    %% periodic BC
-    A1_upw(1,end) = 1;
-else
-    error("unknown bc_type")
-    %%
-end
-A1_upw = A1_upw/dx;
+%% alternative: upwinding
+% A1_upw = diag(ones(N-1,1),-1) - eye(N);
+% if bc_type == "periodic"
+%     %% periodic BC
+%     A1_upw(1,end) = 1;
+% else
+%     error("unknown bc_type")
+%     %%
+% end
+% A1_upw = A1_upw/dx;
+%%
 
 % A1 = A1_upw;
 
@@ -97,7 +91,33 @@ A1_upw = A1_upw/dx;
 % % ddxi x(1,t) = 0
 % A1(end,end) = -1/dx^2 + 1;
 
+%% choose time step size
 
+% dt = 1e-5;
+% % dt = 1e-2;
+% % dt = .5*dx;
+% % dt = .25*dx;
+% % t_end = 4;
+% % t_end = 1;
+% % t_end = 2;
+% % t_end = 0.1;
+% % t_end = 1*dt;
+% % t_end = 200*dt;
+% % t_end = 1000*dt;
+% t_end = 10000*dt;
+% nt = round(t_end/dt);
+
+% alternative
+% dt_diff = (dx^2 * dy^2) / (2*D*(dx^2 + dy^2));
+dt_diff = dx^2/(2*nu)
+dt_adv  = 1 / (abs(v_adv)/dx);
+dt = 0.5 * min(dt_diff, dt_adv);
+t_end = 
+T_final = t_end;
+Nt = ceil(T_final/dt);
+dt = T_final/Nt;
+
+%%
 
 F1 = @(x1) A1*x1;
 
@@ -107,7 +127,9 @@ f = @(x,u) F1(x);
 
 % x0 = zeros(N,1);
 xs = (1:N)/N;
-x0 = exp(-(40*(xs-.5)).^2);
+% x0 = exp(-(40*(xs-.5)).^2);
+x0 = 0*xs;
+x0(1) = 1;
 x0 = x0' ;
 
 u_val = @(t) [];

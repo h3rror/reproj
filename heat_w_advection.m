@@ -5,27 +5,14 @@ rng(1); % for reproducibility
 
 addpath('source/');
 
-N = 128;
+% N = 128; % 2^7
+N = 2^10;
 % N = 12;
 % N = 64;
 
 dx = 1/N;
 
 %% 
-
-dt = 1e-5;
-% dt = 1e-2;
-% dt = .5*dx;
-% dt = .25*dx;
-% t_end = 4;
-% t_end = 1;
-% t_end = 2;
-% t_end = 0.1;
-% t_end = 1*dt;
-% t_end = 200*dt;
-% t_end = 1000*dt;
-t_end = 10000*dt;
-nt = round(t_end/dt);
 
 is = [1];
 Nu = 0;
@@ -71,10 +58,11 @@ else
     %%
 end
 % v_adv = 1/dx; % advection velocity: here tuned to be same order of magnitude as diffusion
-v_adv = 1; % advection velocity: here tuned to be same order of magnitude as diffusion
+v_adv = 1; % discretization-independent advection velocity
 A1_adv = v_adv*A1_adv/(2*dx);
 
 % nu = 1;
+% nu = .5;
 nu = .5*dx;
 % nu = 0;
 % nu = 0.1;
@@ -105,7 +93,33 @@ A1 = nu*A1_diff + A1_adv;
 % % ddxi x(1,t) = 0
 % A1(end,end) = -1/dx^2 + 1;
 
+%% choose time step size
 
+% dt = 1e-5;
+% % dt = 1e-2;
+% % dt = .5*dx;
+% % dt = .25*dx;
+% % t_end = 4;
+% % t_end = 1;
+% % t_end = 2;
+% % t_end = 0.1;
+% % t_end = 1*dt;
+% % t_end = 200*dt;
+% % t_end = 1000*dt;
+% t_end = 10000*dt;
+% nt = round(t_end/dt);
+
+% alternative
+% dt_diff = (dx^2 * dy^2) / (2*D*(dx^2 + dy^2));
+dt_diff = dx^2/(2*nu)
+dt_adv  = 1 / (abs(v_adv)/dx)
+dt = 0.5 * min(dt_diff, dt_adv);
+t_end = 1/v_adv;
+T_final = t_end;
+nt = ceil(T_final/dt);
+dt = T_final/nt;
+
+%%
 
 F1 = @(x1) A1*x1;
 
@@ -165,8 +179,9 @@ inds = 1:snapshot_stride:size(X_b,2);
 
 [V,S,~] = svd(X_b(:,inds),'econ');
 % n = 14;
-% n = 24;
+% n = 27;
 n = 40;
+% n = 26;
 Vn = V(:,1:n);
 
 %% singular value decay
@@ -252,6 +267,12 @@ h_ROM_state_error = zeros(nn,1);
 t_ROM_state_error = zeros(nn,1);
 s_ROM_state_error = zeros(nn,1);
 r_ROM_state_error = zeros(nn,1);
+rt_ROM_state_error = zeros(nn,1);
+
+selects = {};
+
+best_approx_error_POD = zeros(nn,1);
+best_approx_error_mPOD = zeros(nn,1);
 
 n_is__ = n_is(n,is);
 offset = cumsum(n_is__);
@@ -289,12 +310,17 @@ for j = 1:nn
 
     %% compute data recycling opinf
     tX_b0_ = tX_b0(1:n_,:);
-    [Q,R,P] = qr(tX_b0_,"econ");
-    [p,~] = find(P(:,1:n_));  
-    [rVn_,~,~] = svd(X_b(:,p),"econ");
+
+    Vn_ = Vn(:,1:n_);
+    [rtX_b0,rVn_,p] = data_recycling(tX_b0_, X_b, Vn_);
+
+    selects{j} = p;
+    % [Q,R,P] = qr(tX_b0_,"econ");
+    % [p,~] = find(P(:,1:n_));  
+    % [rVn_,~,~] = svd(X_b(:,p),"econ");
     rtO_ = rVn_'*A1*rVn_;
 
-    rtX_b0 = rVn_'*X_b(:,p);
+    % rtX_b0 = rVn_'*X_b(:,p);
     rtX_b1 = rVn_'*X_b(:,p+1);
     dot_rtX_b = (rtX_b1 - rtX_b0)/dt;
     [rO_,~,~,r_condD] = opinf(dot_rtX_b,rtX_b0,U_b(:,p),is,true);
@@ -320,41 +346,18 @@ for j = 1:nn
         sf = @(x,u) sO_*x;
         rf = @(x,u) rO_*x;
 
+        rtf = @(x,u) rtO_*x;
+
         t_ROM_state_error(j) = compute_avg_rom_state_error(Vn_'*x0,tf,nt,U_b,X_b,Vn_,dt);
         h_ROM_state_error(j) = compute_avg_rom_state_error(Vn_'*x0,hf,nt,U_b,X_b,Vn_,dt);
         s_ROM_state_error(j) = compute_avg_rom_state_error(Vn_'*x0,sf,nt,U_b,X_b,Vn_,dt);
         r_ROM_state_error(j) = compute_avg_rom_state_error(rVn_'*x0,rf,nt,U_b,X_b,rVn_,dt);
+        rt_ROM_state_error(j) = compute_avg_rom_state_error(rVn_'*x0,rtf,nt,U_b,X_b,rVn_,dt);
 
-
-        % tX_t = zeros(n_,nt+1);
-        % hX_t = zeros(n_,nt+1);
-        % % U_b = zeros(Nu,nt+1);
-        % t = 0;
-        % tx = Vn_'*x0;
-        % hx = Vn_'*x0;
-        % u = U_b(:,1);
-        % 
-        % tX_t(:,1) = tx;
-        % hX_t(:,1) = hx;
-        % % U_b(:,1) = u;
-        % 
-        % for i=1:nt
-        %     tx = single_step(tx,u,dt,tf);
-        %     hx = single_step(hx,u,dt,hf);
-        % 
-        %     t = t + dt;
-        %     u = U_b(:,i);
-        % 
-        %     tX_t(:,i+1) = tx;
-        %     hX_t(:,i+1) = hx;
-        % end
-        % 
-        % t_ROM_state_error(j) = norm(Vn_*tX_t - X_b,"fro")/norm(X_b,"fro");
-        % h_ROM_state_error(j) = norm(Vn_*hX_t - X_b,"fro")/norm(X_b,"fro");
-
-        % t_ROM_state_error(j) - compute_avg_rom_state_error(Vn_'*x0,tf,nt,U_b,X_b,Vn_,dt)
-        % h_ROM_state_error(j) - compute_avg_rom_state_error(Vn_'*x0,hf,nt,U_b,X_b,Vn_,dt)
-    end
+        X_t = X_b;
+        best_approx_error_POD(j)  = norm(Vn_*Vn_'*X_t - X_t,"fro")/norm(X_t,"fro");
+        best_approx_error_mPOD(j) = norm(rVn_*rVn_'*X_t - X_t,"fro")/norm(X_t,"fro");
+     end
 end
 
 figure
@@ -390,6 +393,10 @@ if computeROMStateError
     semilogy(ns,t_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive", "MarkerSize",10)
     semilogy(ns,s_ROM_state_error,'o:', 'LineWidth', 2,'DisplayName',"standard OpInf", "MarkerSize",10)
     semilogy(ns,r_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"data recycling", "MarkerSize",10)
+    semilogy(ns,rt_ROM_state_error,'s:', 'LineWidth', 2,'DisplayName',"intrusive with data recycling basis", "MarkerSize",10)
+    semilogy(ns,best_approx_error_POD,'-.', 'LineWidth', 2,'DisplayName',"best approx error POD", "MarkerSize",10)
+    semilogy(ns,best_approx_error_mPOD,'-.', 'LineWidth', 2,'DisplayName',"best approx error manipulated POD", "MarkerSize",10)
+
     ylabel("avg rel error of states","Interpreter","latex", "FontSize",15)
     xlabel("ROM dimension","Interpreter","latex", "FontSize",15)
     set(gca, 'YScale', 'log')
@@ -401,6 +408,24 @@ if computeROMStateError
     % savefig("figures/rom_state_error_chafee_infante.fig")
     % exportgraphics(gcf,"figures/rom_state_error_chafee_infante.pdf")
 end
+
+%% plot projection error of snapshots
+rel_proj_errors = vecwise_2norm(Vn*Vn'*X_b-X_b)./vecwise_2norm(X_b);
+figure; plot(rel_proj_errors,"DisplayName", "all snapshots")
+hold on
+% for jj=1:n
+for jj=31:33
+    plot(rel_proj_errors,"s","MarkerIndices",selects{jj},"DisplayName","recycled snapshots "+num2str(jj))
+end
+
+    ylabel("relative projection error","Interpreter","latex", "FontSize",15)
+    xlabel("snapshot index","Interpreter","latex", "FontSize",15)
+    set(gca, 'YScale', 'log')
+    grid on
+    legend("show","Interpreter","latex", "FontSize",12)
+    legend("Location","northeast")
+    % ylim([1e-17 1e-15])
+    box on
 
 
 % %% FOM solver running for one time step
