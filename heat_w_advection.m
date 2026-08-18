@@ -15,7 +15,8 @@ dx = 1/N;
 %% 
 
 is = [1];
-Nu = 0;
+% Nu = 0;
+Nu = 1;
 
 A1_diff = diag(ones(N-1,1),-1) -eye(N);
 A1_diff = (A1_diff+A1_diff');
@@ -35,7 +36,7 @@ elseif bc_type == "periodic"
 elseif bc_type =="Dirichlet10"
     %% Dirichlet BC: left 1, right 0
     % A1_diff(1,:) = 0; destroys symmetry!
-    B_diff = zeros(N,1); B_diff(1);
+    B_diff = zeros(N,1); B_diff(1)=1;
 else
     error("unknown bc_type")
     %%
@@ -126,23 +127,27 @@ dt = T_final/nt;
 
 %%
 
-F1 = @(x1) A1*x1 + B;
+% F1 = @(x1,u) A1*x1;
+% F1 = @(x1,u) A1*x1 + B;
+F1 = @(x1,u) A1*x1 + B*u;
 
 F1X = @(X) F1(X(:,1));
+% F1X = @(X) F1(X(:,1),u);
 
-f = @(x,u) F1(x);
+f = @(x,u) F1(x,u);
 
 % x0 = zeros(N,1);
 xs = (1:N)/N;
 % x0 = exp(-(40*(xs-.5)).^2);
 x0 = 0*xs;
+x0(1) = 1;
 x0 = x0' ;
 
-u_val = @(t) [];
+u_val = @(t) 1+0*t;
 
 %% generate ROM basis construction data
 X_b = zeros(N,nt+1);
-U_b = zeros(0,nt+1);
+U_b = zeros(Nu,nt+1);
 
 t = 0;
 x = x0;
@@ -206,9 +211,12 @@ tX_b = Vn' *X_b;
 tX_b0 = tX_b(:,1:end-1);
 tX_b1 = tX_b(:,2:end);
 dot_tX_b = (tX_b1-tX_b0)/dt;
+% dot_tX_b = (tX_b1-tX_b0-Vn'*B)/dt; %botch!
 
 %% construct intrusive operators
 tA1 = Vn'*A1*Vn;
+
+tB = Vn'*B;
 
 % n2 = n*(n+1)/2;
 % tA2 = zeros(n,n2);
@@ -218,12 +226,23 @@ tA1 = Vn'*A1*Vn;
 % tB = Vn'*B;
 % 
 % tO = [tB tA1 tA2 tA3];
-tO = tA1;
+
+if Nu == 0
+    tO = tA1;
+elseif Nu == 1
+    tO = [tB tA1];
+end
 
 
 %% generate rank-sufficient snapshot data
 tX0_pure = rank_suff_basis(n,is);
-U0_pure = [];
+
+if Nu == 0
+    U0_pure = [];
+elseif Nu == 1
+    U0_pure = [1];
+end
+
 XU = blkdiag(U0_pure,tX0_pure);
 tX0 = XU(Nu+1:end,:);
 U0 = XU(1:Nu,:);
@@ -293,6 +312,7 @@ for j = 1:nn
         ks = [ks Nu+offset(jj-1)+(1:n_is_(jj))];
     end
 
+
     tX0_ = tX0(1:n_,ks);
     dot_tX_ = dot_tX(1:n_,ks);
     U0_ = U0(:,ks);
@@ -306,34 +326,38 @@ for j = 1:nn
     condsD(j) = condD;
 
     %% compute standard opinf
-    [sO_,~,~,s_condD] = opinf(dot_tX_b(1:n_,:),tX_b0(1:n_,:),U_b,is,true);
+    U_b0 = U_b(:,1:end-1);
+    [sO_,~,~,s_condD] = opinf(dot_tX_b(1:n_,:),tX_b0(1:n_,:),U_b0,is,true);
 
     s_condsD(j) = s_condD;
    
     s_O_errors(j) = norm(sO_-tO_,"fro")/norm(tO_,"fro");
 
     %% compute data recycling opinf
-    tX_b0_ = tX_b0(1:n_,:);
+    % data_recycling = true
+    data_recycling = false
+    if data_recycling
+        tX_b0_ = tX_b0(1:n_,:);
 
-    Vn_ = Vn(:,1:n_);
-    [rtX_b0,rVn_,p] = data_recycling_proj_error(tX_b0_, X_b, Vn_);
-    % [rtX_b0,rVn_,p] = data_recycling(tX_b0_, X_b, Vn_);
+        Vn_ = Vn(:,1:n_);
+        % [rtX_b0,rVn_,p] = data_recycling_proj_error(tX_b0_, X_b, Vn_);
+        [rtX_b0,rVn_,p] = data_recycling(tX_b0_, X_b, Vn_);
 
-    selects{j} = p;
-    % [Q,R,P] = qr(tX_b0_,"econ");
-    % [p,~] = find(P(:,1:n_));  
-    % [rVn_,~,~] = svd(X_b(:,p),"econ");
-    rtO_ = rVn_'*A1*rVn_;
+        selects{j} = p;
+        % [Q,R,P] = qr(tX_b0_,"econ");
+        % [p,~] = find(P(:,1:n_));
+        % [rVn_,~,~] = svd(X_b(:,p),"econ");
+        rtO_ = rVn_'*A1*rVn_;
 
-    % rtX_b0 = rVn_'*X_b(:,p);
-    rtX_b1 = rVn_'*X_b(:,p+1);
-    dot_rtX_b = (rtX_b1 - rtX_b0)/dt;
-    [rO_,~,~,r_condD] = opinf(dot_rtX_b,rtX_b0,U_b(:,p),is,true);
+        % rtX_b0 = rVn_'*X_b(:,p);
+        rtX_b1 = rVn_'*X_b(:,p+1);
+        dot_rtX_b = (rtX_b1 - rtX_b0)/dt;
+        [rO_,~,~,r_condD] = opinf(dot_rtX_b,rtX_b0,U_b(:,p),is,true);
 
-    r_condsD(j) = r_condD;
-   
-    r_O_errors(j) = norm(rO_-rtO_,"fro")/norm(rtO_,"fro");
-    
+        r_condsD(j) = r_condD;
+
+        r_O_errors(j) = norm(rO_-rtO_,"fro")/norm(rtO_,"fro");
+    end
 
     %% compute avg ROM state error
     computeROMStateError = true;
@@ -343,33 +367,49 @@ for j = 1:nn
         % [~,~,un_2] = reduced_coordinates(n_,2);
         % [~,~,un_3] = reduced_coordinates(n_,3);
         % tf = @(tx,u) tO_*[u;tx;uniquepower(tx,2,un_2);uniquepower(tx,3,un_3)];
-        tf = @(tx,u) tO_*tx;
+        
+        if Nu == 0
+            x_vec = @(x) x;
+        elseif Nu == 1
+            x_vec = @(x) [1; x];
+        end
+        
+        % tf = @(tx,u) tO_*x_vec(tx);
+        Br_ = Vn_'*B;
+        % tf = @(tx,u) tO_*x_vec(tx) + Br_;
+        tf = @(tx,u) tO_*x_vec(tx);
         hO_ = O;
         % hf = @(hx,u) hO_*[u;hx;uniquepower(hx,2,un_2);uniquepower(hx,3,un_3)];
-        hf = @(hx,u) hO_*hx;
+        hf = @(hx,u) hO_*x_vec(hx);
+        sf = @(x,u) sO_*x_vec(x);
 
-        sf = @(x,u) sO_*x;
-        rf = @(x,u) rO_*x;
-
-        rtf = @(x,u) rtO_*x;
 
         t_ROM_state_error(j) = compute_avg_rom_state_error(Vn_'*x0,tf,nt,U_b,X_b,Vn_,dt);
         h_ROM_state_error(j) = compute_avg_rom_state_error(Vn_'*x0,hf,nt,U_b,X_b,Vn_,dt);
         s_ROM_state_error(j) = compute_avg_rom_state_error(Vn_'*x0,sf,nt,U_b,X_b,Vn_,dt);
-        r_ROM_state_error(j) = compute_avg_rom_state_error(rVn_'*x0,rf,nt,U_b,X_b,rVn_,dt);
-        rt_ROM_state_error(j) = compute_avg_rom_state_error(rVn_'*x0,rtf,nt,U_b,X_b,rVn_,dt);
-
+        
         X_t = X_b;
         best_approx_error_POD(j)  = norm(Vn_*Vn_'*X_t - X_t,"fro")/norm(X_t,"fro");
-        best_approx_error_mPOD(j) = norm(rVn_*rVn_'*X_t - X_t,"fro")/norm(X_t,"fro");
-     end
+        
+        if data_recycling
+            rf = @(x,u) rO_*x_vec(x);
+            rtf = @(x,u) rtO_*x_vec(x);
+            r_ROM_state_error(j) = compute_avg_rom_state_error(rVn_'*x0,rf,nt,U_b,X_b,rVn_,dt);
+            rt_ROM_state_error(j) = compute_avg_rom_state_error(rVn_'*x0,rtf,nt,U_b,X_b,rVn_,dt);
+
+            best_approx_error_mPOD(j) = norm(rVn_*rVn_'*X_t - X_t,"fro")/norm(X_t,"fro");
+        end
+
+    end
 end
 
 figure
 hold on
 semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"O exact opinf")
 semilogy(ns,s_O_errors,'x-', 'LineWidth', 2,'DisplayName',"O standard opinf")
-semilogy(ns,r_O_errors,'x-', 'LineWidth', 2,'DisplayName',"O data recycling")
+if data_recycling
+    semilogy(ns,r_O_errors,'x-', 'LineWidth', 2,'DisplayName',"O data recycling")
+end
 ylabel("relative operator error")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
@@ -381,7 +421,9 @@ figure
 hold on
 semilogy(ns,condsD,'x-', 'LineWidth', 2,'DisplayName',"O exact opinf")
 semilogy(ns,s_condsD,'x-', 'LineWidth', 2,'DisplayName',"O standard opinf")
-semilogy(ns,r_condsD,'x-', 'LineWidth', 2,'DisplayName',"O data recycling")
+if data_recycling
+    semilogy(ns,r_condsD,'x-', 'LineWidth', 2,'DisplayName',"O data recycling")
+end
 ylabel("condition number")
 xlabel("ROM dimension")
 set(gca, 'YScale', 'log')
@@ -397,11 +439,12 @@ if computeROMStateError
     semilogy(ns,h_ROM_state_error,'x-', 'LineWidth', 2,'DisplayName',"exactOpInf", "MarkerSize",10)
     semilogy(ns,t_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive", "MarkerSize",10)
     semilogy(ns,s_ROM_state_error,'o:', 'LineWidth', 2,'DisplayName',"standard OpInf", "MarkerSize",10)
-    semilogy(ns,r_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"data recycling", "MarkerSize",10)
-    semilogy(ns,rt_ROM_state_error,'s:', 'LineWidth', 2,'DisplayName',"intrusive with data recycling basis", "MarkerSize",10)
     semilogy(ns,best_approx_error_POD,'-.', 'LineWidth', 2,'DisplayName',"best approx error POD", "MarkerSize",10)
-    semilogy(ns,best_approx_error_mPOD,'-.', 'LineWidth', 2,'DisplayName',"best approx error manipulated POD", "MarkerSize",10)
-
+    if data_recycling
+        semilogy(ns,r_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"data recycling", "MarkerSize",10)
+        semilogy(ns,rt_ROM_state_error,'s:', 'LineWidth', 2,'DisplayName',"intrusive with data recycling basis", "MarkerSize",10)
+        semilogy(ns,best_approx_error_mPOD,'-.', 'LineWidth', 2,'DisplayName',"best approx error manipulated POD", "MarkerSize",10)
+    end
     ylabel("avg rel error of states","Interpreter","latex", "FontSize",15)
     xlabel("ROM dimension","Interpreter","latex", "FontSize",15)
     set(gca, 'YScale', 'log')
@@ -409,19 +452,22 @@ if computeROMStateError
     legend("show","Interpreter","latex", "FontSize",12)
     legend("Location","northeast")
     % ylim([1e-17 1e-15])
+    % ylim([8*1e-3 2])
     box on
     % savefig("figures/rom_state_error_chafee_infante.fig")
     % exportgraphics(gcf,"figures/rom_state_error_chafee_infante.pdf")
 end
 
-%% plot projection error of snapshots
-rel_proj_errors = vecwise_2norm(Vn*Vn'*X_b-X_b)./vecwise_2norm(X_b);
-figure; plot(rel_proj_errors,"DisplayName", "all snapshots")
-hold on
-% for jj=1:n
-for jj=31:33
-    plot(rel_proj_errors,"s","MarkerIndices",selects{jj},"DisplayName","recycled snapshots "+num2str(jj))
-end
+if data_recycling
+    %% plot projection error of snapshots
+    rel_proj_errors = vecwise_2norm(Vn*Vn'*X_b-X_b)./vecwise_2norm(X_b);
+    figure; plot(rel_proj_errors,"DisplayName", "all snapshots")
+    hold on
+    % for jj=1:n
+    for jj=n:n
+        % for jj=31:33
+        plot(rel_proj_errors,"s","MarkerIndices",selects{jj},"DisplayName","recycled snapshots "+num2str(jj))
+    end
 
     ylabel("relative projection error","Interpreter","latex", "FontSize",15)
     xlabel("snapshot index","Interpreter","latex", "FontSize",15)
@@ -429,8 +475,10 @@ end
     grid on
     legend("show","Interpreter","latex", "FontSize",12)
     legend("Location","northeast")
-    % ylim([1e-17 1e-15])
+    % y
+    % lim([1e-17 1e-15])
     box on
+end
 
 
 % %% FOM solver running for one time step
