@@ -1,0 +1,32 @@
+function [rtX_b0,rVn_,p] = data_recycling_proj_error(tX_b0_, X_b, Vn_)
+% select snapshots for data recycling with projection error tolerance
+
+
+rel_proj_errors = vecwise_2norm(Vn_*Vn_'*X_b-X_b)./vecwise_2norm(X_b);
+rel_proj_errors0 = rel_proj_errors(1:end-1);
+
+proj_tol = 1e-14;
+% cond_tol = 1e12;
+cond_tol = 1e4;
+
+s = @(tol) find(rel_proj_errors0 < tol);
+
+[n_,K] = size(tX_b0_);
+
+cond_rtX = 10*cond_tol;
+
+if K >= n_
+    while length(s(proj_tol))<n_
+        proj_tol = 10*proj_tol;
+    end
+    while cond_rtX > cond_tol
+        [Q,R,P] = qr(tX_b0_(:,s(proj_tol)),"econ");
+        [p,~] = find(P(:,1:n_));
+        [rVn_,~,~] = svd(X_b(:,p),"econ");
+
+        rtX_b0 = rVn_'*X_b(:,p);
+        cond_rtX = cond(rtX_b0);
+
+        proj_tol = 10*proj_tol;
+    end
+end

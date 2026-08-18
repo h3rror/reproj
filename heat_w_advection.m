@@ -34,12 +34,14 @@ elseif bc_type == "periodic"
     A1_diff(end,1) = 1;
 elseif bc_type =="Dirichlet10"
     %% Dirichlet BC: left 1, right 0
-    A1_diff(1,:) = 0;
+    % A1_diff(1,:) = 0; destroys symmetry!
+    B_diff = zeros(N,1); B_diff(1);
 else
     error("unknown bc_type")
     %%
 end
 A1_diff = A1_diff/dx^2;
+B_diff = B_diff/dx^2;
 
 A1_adv = diag(ones(N-1,1),-1) - diag(ones(N-1,1),1);
 if bc_type == "hom_Neumann"
@@ -52,7 +54,8 @@ elseif bc_type == "periodic"
     A1_adv(end,1) = -1;
 elseif bc_type =="Dirichlet10"
     %% Dirichlet BC: left 1, right 0
-    A1_adv(1,:) = 0;
+    % A1_adv(1,:) = 0; destroys skew-symmetry!
+    B_adv = zeros(N,1); B_adv(1) = 1;
 else
     error("unknown bc_type")
     %%
@@ -60,6 +63,7 @@ end
 % v_adv = 1/dx; % advection velocity: here tuned to be same order of magnitude as diffusion
 v_adv = 1; % discretization-independent advection velocity
 A1_adv = v_adv*A1_adv/(2*dx);
+B_adv = v_adv*B_adv/(2*dx);
 
 % nu = 1;
 % nu = .5;
@@ -67,6 +71,7 @@ nu = .5*dx;
 % nu = 0;
 % nu = 0.1;
 A1 = nu*A1_diff + A1_adv;
+B = nu*B_diff + B_adv;
 
 %% alternative: upwinding
 % A1_upw = diag(ones(N-1,1),-1) - eye(N);
@@ -121,7 +126,7 @@ dt = T_final/nt;
 
 %%
 
-F1 = @(x1) A1*x1;
+F1 = @(x1) A1*x1 + B;
 
 F1X = @(X) F1(X(:,1));
 
@@ -131,7 +136,6 @@ f = @(x,u) F1(x);
 xs = (1:N)/N;
 % x0 = exp(-(40*(xs-.5)).^2);
 x0 = 0*xs;
-x0(1) = 1;
 x0 = x0' ;
 
 u_val = @(t) [];
@@ -179,8 +183,8 @@ inds = 1:snapshot_stride:size(X_b,2);
 
 [V,S,~] = svd(X_b(:,inds),'econ');
 % n = 14;
-% n = 27;
-n = 40;
+n = 28;
+% n = 40;
 % n = 26;
 Vn = V(:,1:n);
 
@@ -312,7 +316,8 @@ for j = 1:nn
     tX_b0_ = tX_b0(1:n_,:);
 
     Vn_ = Vn(:,1:n_);
-    [rtX_b0,rVn_,p] = data_recycling(tX_b0_, X_b, Vn_);
+    [rtX_b0,rVn_,p] = data_recycling_proj_error(tX_b0_, X_b, Vn_);
+    % [rtX_b0,rVn_,p] = data_recycling(tX_b0_, X_b, Vn_);
 
     selects{j} = p;
     % [Q,R,P] = qr(tX_b0_,"econ");
