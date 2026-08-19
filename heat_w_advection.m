@@ -7,6 +7,7 @@ addpath('source/');
 
 % N = 128; % 2^7
 N = 2^10;
+% N = 2^12;
 % N = 12;
 % N = 64;
 
@@ -15,15 +16,15 @@ dx = 1/N;
 %% 
 
 is = [1];
-% Nu = 0;
-Nu = 1;
+Nu = 0;
+% Nu = 1;
 
 A1_diff = diag(ones(N-1,1),-1) -eye(N);
 A1_diff = (A1_diff+A1_diff');
 
-% bc_type = "periodic"
+bc_type = "periodic"
 % bc_type = "hom_Neumann"
-bc_type = "Dirichlet10"
+% bc_type = "Dirichlet10"
 
 if bc_type == "hom_Neumann"
     %% homogeneous Neumann BC
@@ -33,6 +34,7 @@ elseif bc_type == "periodic"
     %% periodic BC
     A1_diff(1,end) = 1;
     A1_diff(end,1) = 1;
+    B_diff = 0;
 elseif bc_type =="Dirichlet10"
     %% Dirichlet BC: left 1, right 0
     % A1_diff(1,:) = 0; destroys symmetry!
@@ -53,6 +55,7 @@ elseif bc_type == "periodic"
     %% periodic BC
     A1_adv(1,end) = 1;
     A1_adv(end,1) = -1;
+    B_adv = 0;
 elseif bc_type =="Dirichlet10"
     %% Dirichlet BC: left 1, right 0
     % A1_adv(1,:) = 0; destroys skew-symmetry!
@@ -120,7 +123,9 @@ B = nu*B_diff + B_adv;
 dt_diff = dx^2/(2*nu)
 dt_adv  = 1 / (abs(v_adv)/dx)
 dt = 0.5 * min(dt_diff, dt_adv);
-t_end = 1/v_adv;
+% t_end = 1/v_adv;
+t_end = 1/v_adv/2;
+% t_end = 1/v_adv/20;
 T_final = t_end;
 nt = ceil(T_final/dt);
 dt = T_final/nt;
@@ -128,8 +133,11 @@ dt = T_final/nt;
 %%
 
 % F1 = @(x1,u) A1*x1;
-% F1 = @(x1,u) A1*x1 + B;
-F1 = @(x1,u) A1*x1 + B*u;
+if Nu == 0
+    F1 = @(x1,u) A1*x1 + B;
+elseif Nu == 1
+    F1 = @(x1,u) A1*x1 + B*u;
+end
 
 F1X = @(X) F1(X(:,1));
 % F1X = @(X) F1(X(:,1),u);
@@ -140,7 +148,9 @@ f = @(x,u) F1(x,u);
 xs = (1:N)/N;
 % x0 = exp(-(40*(xs-.5)).^2);
 x0 = 0*xs;
-x0(1) = 1;
+% x0(1) = 1;
+x0(1:(N/2)) = 1;
+% x0(1:(N/8)) = 1;
 x0 = x0' ;
 
 u_val = @(t) 1+0*t;
@@ -334,9 +344,9 @@ for j = 1:nn
     s_O_errors(j) = norm(sO_-tO_,"fro")/norm(tO_,"fro");
 
     %% compute data recycling opinf
-    % data_recycling = true
-    data_recycling = false
-    if data_recycling
+    do_data_recycling = true;
+    % do_data_recycling = false;
+    if do_data_recycling
         tX_b0_ = tX_b0(1:n_,:);
 
         Vn_ = Vn(:,1:n_);
@@ -384,18 +394,46 @@ for j = 1:nn
         sf = @(x,u) sO_*x_vec(x);
 
 
-        t_ROM_state_error(j) = compute_avg_rom_state_error(Vn_'*x0,tf,nt,U_b,X_b,Vn_,dt);
-        h_ROM_state_error(j) = compute_avg_rom_state_error(Vn_'*x0,hf,nt,U_b,X_b,Vn_,dt);
-        s_ROM_state_error(j) = compute_avg_rom_state_error(Vn_'*x0,sf,nt,U_b,X_b,Vn_,dt);
-        
+        % test_type = "train";
+        test_type = "worst-case";
+
+        if test_type == "train"
+        tx0 = Vn_'*x0;
+        rx0 = rVn_'*x0;
         X_t = X_b;
+        %% compute avg ROM state error for worst-case initial condition
+        elseif test_type == "worst-case"
+        [sx0_wc,lambda] = eigs(sO_-tO_,1); 
+        % lambda
+                % sx0_wc = Vn_'*x0; % botch!!!
+
+        %% option 1: IC in POD space
+        % tx0 = sx0_wc;
+        % rx0 = rVn_'*Vn_*tx0;
+        % x0_t = Vn_*tx0;
+        %% option 2: IC in manipulated POD space
+        rx0 = rVn_'*Vn_*sx0_wc;
+        tx0 = Vn_'*rVn_*rx0;
+        x0_t = rVn_*rx0;
+        %%
+        X_t = gen_FOM_data(x0_t,u_val,f,nt,N,dt); 
+        else
+            error("unknown test_type")
+        end
+        %%
+
+
+        t_ROM_state_error(j) = compute_avg_rom_state_error(tx0,tf,nt,U_b,X_t,Vn_,dt);
+        h_ROM_state_error(j) = compute_avg_rom_state_error(tx0,hf,nt,U_b,X_t,Vn_,dt);
+        s_ROM_state_error(j) = compute_avg_rom_state_error(tx0,sf,nt,U_b,X_t,Vn_,dt);
+        
         best_approx_error_POD(j)  = norm(Vn_*Vn_'*X_t - X_t,"fro")/norm(X_t,"fro");
         
-        if data_recycling
+        if do_data_recycling
             rf = @(x,u) rO_*x_vec(x);
             rtf = @(x,u) rtO_*x_vec(x);
-            r_ROM_state_error(j) = compute_avg_rom_state_error(rVn_'*x0,rf,nt,U_b,X_b,rVn_,dt);
-            rt_ROM_state_error(j) = compute_avg_rom_state_error(rVn_'*x0,rtf,nt,U_b,X_b,rVn_,dt);
+            r_ROM_state_error(j) = compute_avg_rom_state_error(rx0,rf,nt,U_b,X_t,rVn_,dt);
+            rt_ROM_state_error(j) = compute_avg_rom_state_error(rx0,rtf,nt,U_b,X_t,rVn_,dt);
 
             best_approx_error_mPOD(j) = norm(rVn_*rVn_'*X_t - X_t,"fro")/norm(X_t,"fro");
         end
@@ -407,7 +445,7 @@ figure
 hold on
 semilogy(ns,O_errors,'x-', 'LineWidth', 2,'DisplayName',"O exact opinf")
 semilogy(ns,s_O_errors,'x-', 'LineWidth', 2,'DisplayName',"O standard opinf")
-if data_recycling
+if do_data_recycling
     semilogy(ns,r_O_errors,'x-', 'LineWidth', 2,'DisplayName',"O data recycling")
 end
 ylabel("relative operator error")
@@ -421,7 +459,7 @@ figure
 hold on
 semilogy(ns,condsD,'x-', 'LineWidth', 2,'DisplayName',"O exact opinf")
 semilogy(ns,s_condsD,'x-', 'LineWidth', 2,'DisplayName',"O standard opinf")
-if data_recycling
+if do_data_recycling
     semilogy(ns,r_condsD,'x-', 'LineWidth', 2,'DisplayName',"O data recycling")
 end
 ylabel("condition number")
@@ -440,7 +478,7 @@ if computeROMStateError
     semilogy(ns,t_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"intrusive", "MarkerSize",10)
     semilogy(ns,s_ROM_state_error,'o:', 'LineWidth', 2,'DisplayName',"standard OpInf", "MarkerSize",10)
     semilogy(ns,best_approx_error_POD,'-.', 'LineWidth', 2,'DisplayName',"best approx error POD", "MarkerSize",10)
-    if data_recycling
+    if do_data_recycling
         semilogy(ns,r_ROM_state_error,'+:', 'LineWidth', 2,'DisplayName',"data recycling", "MarkerSize",10)
         semilogy(ns,rt_ROM_state_error,'s:', 'LineWidth', 2,'DisplayName',"intrusive with data recycling basis", "MarkerSize",10)
         semilogy(ns,best_approx_error_mPOD,'-.', 'LineWidth', 2,'DisplayName',"best approx error manipulated POD", "MarkerSize",10)
@@ -458,7 +496,7 @@ if computeROMStateError
     % exportgraphics(gcf,"figures/rom_state_error_chafee_infante.pdf")
 end
 
-if data_recycling
+if do_data_recycling
     %% plot projection error of snapshots
     rel_proj_errors = vecwise_2norm(Vn*Vn'*X_b-X_b)./vecwise_2norm(X_b);
     figure; plot(rel_proj_errors,"DisplayName", "all snapshots")
@@ -478,6 +516,14 @@ if data_recycling
     % y
     % lim([1e-17 1e-15])
     box on
+
+    % plot eigenvalues
+    figure;
+    plot(complex(eig(tO_)),"x", "DisplayName","intrusive")
+    hold on
+    plot(complex(eig(sO_)),"v", "DisplayName","standard opinf")
+    plot(complex(eig(rtO_)),"+", "DisplayName","intrusive recycled")
+    plot(complex(eig(rO_)),"^", "DisplayName","data recycling")
 end
 
 
