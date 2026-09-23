@@ -322,7 +322,7 @@ for j = 1:nn
         ks = [ks Nu+offset(jj-1)+(1:n_is_(jj))];
     end
 
-
+    %% compute exact opinf
     tX0_ = tX0(1:n_,ks);
     dot_tX_ = dot_tX(1:n_,ks);
     U0_ = U0(:,ks);
@@ -394,8 +394,8 @@ for j = 1:nn
         sf = @(x,u) sO_*x_vec(x);
 
 
-        % test_type = "train";
-        test_type = "worst-case";
+        test_type = "train";
+        % test_type = "worst-case";
 
         if test_type == "train"
         tx0 = Vn_'*x0;
