@@ -532,3 +532,11 @@ end
 %     x_1 = x_0 + dt*f(x_0,u_0);
 % end
 
+
+%% plot deviations in projected snapshots from exact data
+
+diffs = dot_tX_b - tO*tX_b0;
+figure; plot(diffs', 'x')
+
+[Phi,Sigma,Psi] = svd(tX_b0,"econ"); 
+figure; plot(diffs2', 'x')
