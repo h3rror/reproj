@@ -394,48 +394,57 @@ for j = 1:nn
         sf = @(x,u) sO_*x_vec(x);
 
 
-        test_type = "train";
-        % test_type = "worst-case";
+        % test_type = "train";
+        test_type = "worst-case";
+        % test_type = "experimental";
 
         if test_type == "train"
-        tx0 = Vn_'*x0;
-        rx0 = rVn_'*x0;
-        X_t = X_b;
+            tx0 = Vn_'*x0;
+            rx0 = rVn_'*x0;
+            X_t = X_b;
         %% compute avg ROM state error for worst-case initial condition
         elseif test_type == "worst-case"
-        [sx0_wc,lambda] = eigs(sO_-tO_,1); 
-        % lambda
-                % sx0_wc = Vn_'*x0; % botch!!!
+            [sx0_wc,lambda] = eigs(sO_-tO_,1);
+            % lambda
+            % sx0_wc = Vn_'*x0; % botch!!!
 
-        %% option 1: IC in POD space
-        % tx0 = sx0_wc;
-        % rx0 = rVn_'*Vn_*tx0;
-        % x0_t = Vn_*tx0;
-        %% option 2: IC in manipulated POD space
-        rx0 = rVn_'*Vn_*sx0_wc;
-        tx0 = Vn_'*rVn_*rx0;
-        x0_t = rVn_*rx0;
-        %%
-        X_t = gen_FOM_data(x0_t,u_val,f,nt,N,dt); 
+            %% option 1: IC in POD space
+            % tx0 = sx0_wc;
+            % rx0 = rVn_'*Vn_*tx0;
+            % x0_t = Vn_*tx0;
+            %% option 2: IC in manipulated POD space
+            rx0 = rVn_'*Vn_*sx0_wc;
+            tx0 = Vn_'*rVn_*rx0;
+            x0_t = rVn_*rx0;
+            %%
+            X_t = gen_FOM_data(x0_t,u_val,f,nt,N,dt);
+        elseif test_type == " experimental"
+            rxO = zeros(n_,1); rx0(n_) = 1;
+            tx0 = Vn_'*rVn_*rx0;
+            x0_t = rVn_*rx0;
+            %%
+            X_t = gen_FOM_data(x0_t,u_val,f,nt,N,dt);
         else
             error("unknown test_type")
         end
         %%
 
 
-        t_ROM_state_error(j) = compute_avg_rom_state_error(tx0,tf,nt,U_b,X_t,Vn_,dt);
-        h_ROM_state_error(j) = compute_avg_rom_state_error(tx0,hf,nt,U_b,X_t,Vn_,dt);
-        s_ROM_state_error(j) = compute_avg_rom_state_error(tx0,sf,nt,U_b,X_t,Vn_,dt);
+        [t_ROM_state_error(j),tX_t,t_error_series] = compute_avg_rom_state_error(tx0,tf,nt,U_b,X_t,Vn_,dt);
+        [h_ROM_state_error(j),hX_t,h_error_series] = compute_avg_rom_state_error(tx0,hf,nt,U_b,X_t,Vn_,dt);
+        [s_ROM_state_error(j),sX_t,s_error_series] = compute_avg_rom_state_error(tx0,sf,nt,U_b,X_t,Vn_,dt);
         
         best_approx_error_POD(j)  = norm(Vn_*Vn_'*X_t - X_t,"fro")/norm(X_t,"fro");
+        best_approx_series = vecwise_2norm(Vn_*Vn_'*X_t - X_t);
         
         if do_data_recycling
             rf = @(x,u) rO_*x_vec(x);
             rtf = @(x,u) rtO_*x_vec(x);
-            r_ROM_state_error(j) = compute_avg_rom_state_error(rx0,rf,nt,U_b,X_t,rVn_,dt);
-            rt_ROM_state_error(j) = compute_avg_rom_state_error(rx0,rtf,nt,U_b,X_t,rVn_,dt);
+            [r_ROM_state_error(j),rX_t,r_error_series] = compute_avg_rom_state_error(rx0,rf,nt,U_b,X_t,rVn_,dt);
+            [rt_ROM_state_error(j),rtX_t,rt_error_series] = compute_avg_rom_state_error(rx0,rtf,nt,U_b,X_t,rVn_,dt);
 
             best_approx_error_mPOD(j) = norm(rVn_*rVn_'*X_t - X_t,"fro")/norm(X_t,"fro");
+            best_approx_series_mPOD = vecwise_2norm(rVn_*rVn_'*X_t - X_t);
         end
 
     end
@@ -531,6 +540,27 @@ end
 % function x_1 = single_step(x_0,u_0,dt,f)
 %     x_1 = x_0 + dt*f(x_0,u_0);
 % end
+
+
+%% figure plot ROM state errors over time
+figure; hold on
+ts = dt*(0:nt);
+
+semilogy(ts,h_error_series,'-', 'LineWidth', 2,'DisplayName',"exactOpInf", "MarkerSize",10)
+semilogy(ts,t_error_series,':', 'LineWidth', 2,'DisplayName',"intrusive", "MarkerSize",10)
+semilogy(ts,s_error_series,':', 'LineWidth', 2,'DisplayName',"standard OpInf", "MarkerSize",10)
+semilogy(ts,best_approx_series,'-.', 'LineWidth', 2,'DisplayName',"best approx error POD", "MarkerSize",10)
+if do_data_recycling
+    semilogy(ts,r_error_series,':', 'LineWidth', 2,'DisplayName',"data recycling", "MarkerSize",10)
+    semilogy(ts,rt_error_series,':', 'LineWidth', 2,'DisplayName',"intrusive with data recycling basis", "MarkerSize",10)
+    semilogy(ts,best_approx_series_mPOD,'-.', 'LineWidth', 2,'DisplayName',"best approx error manipulated POD", "MarkerSize",10)
+end
+ylabel("error of states","Interpreter","latex", "FontSize",15)
+xlabel("simulation time","Interpreter","latex", "FontSize",15)
+set(gca, 'YScale', 'log')
+grid on
+legend("show","Interpreter","latex", "FontSize",12)
+legend("Location","northeast")
 
 
 %% plot deviations in projected snapshots from exact data

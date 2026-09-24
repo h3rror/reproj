@@ -1,4 +1,4 @@
-function [t_ROM_state_error_j,tX] = compute_avg_rom_state_error(tx0,tf,nt,U_b,X_b,Vn,dt)
+function [t_ROM_state_error_j,tX,error_series] = compute_avg_rom_state_error(tx0,tf,nt,U_b,X_b,Vn,dt)
 
 n = size(tx0,1);
 
@@ -19,3 +19,5 @@ for i=1:nt
 end
 
 t_ROM_state_error_j = norm(Vn*tX - X_b,"fro")/norm(X_b,"fro");
+
+error_series = vecwise_2norm(Vn*tX - X_b);
