@@ -539,4 +539,49 @@ diffs = dot_tX_b - tO*tX_b0;
 figure; plot(diffs', 'x')
 
 [Phi,Sigma,Psi] = svd(tX_b0,"econ"); 
+diffs2 = dot_tX_b*Psi/Sigma - tO*Phi;
 figure; plot(diffs2', 'x')
+
+%% plot snapshot data
+figure; plot(dot_tX_b', 'x')
+title("$\dot{X}$ plotted row-wise",Interpreter="latex")
+xlabel(" time")
+ylabel(" entry magnitude")
+
+
+figure; plot(tX_b0', 'x')
+title("${X}$ plotted row-wise",Interpreter="latex")
+xlabel(" time")
+ylabel(" entry magnitude")
+
+%% demonstrate non-Markovian cancellation
+vec1 = (diffs(1,:));
+sec2 = (vec1>0);
+sec3 = (vec1<0);
+vec2_vis = 0*vec1; vec2_vis(sec2) = vec1(sec2);
+vec3_vis = 0*vec1; vec3_vis(sec3) = vec1(sec3);
+
+figure; plot(vec1," o");
+hold on
+plot(vec2_vis," x")
+plot(vec3_vis," x")
+
+xlabel(" time")
+ylabel(" entry magnitude")
+legend("first row of $\dot{X} - OX$", " only positive entries", " only negative entries",interpreter=" latex")
+
+vec2 = vec1(sec2);
+vec3 = vec1(sec3);
+
+O1 = (tX_b0'\vec1')';
+O2 = (tX_b0(:,sec2)' \vec2')';
+O3 = (tX_b0(:,sec3)' \vec3')';
+
+figure; plot(O1," o");
+hold on
+plot(O2," x")
+plot(O3," x")
+
+xlabel(" time")
+ylabel(" entry magnitude")
+legend("least squares fit", " only positive entries", " only negative entries",interpreter=" latex")

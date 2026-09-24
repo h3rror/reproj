@@ -533,4 +533,41 @@ end
 % end
 
 
-%
+%% plot deviations in projected snapshots from exact data
+
+diffs = dot_tX_b - tO*tX_b0;
+figure; plot(diffs', 'x')
+
+[Phi,Sigma,Psi] = svd(tX_b0,"econ"); 
+diffs2 = dot_tX_b*Psi/Sigma - tO*Phi;
+figure; plot(diffs2', 'x')
+
+%% plot snapshot data
+figure; plot(dot_tX_b', 'x')
+title("$\dot{X}$ plotted row-wise",Interpreter="latex")
+xlabel(" time")
+ylabel(" entry magnitude")
+
+
+figure; plot(tX_b0', 'x')
+title("${X}$ plotted row-wise",Interpreter="latex")
+xlabel(" time")
+ylabel(" entry magnitude")
+
+%% demonstrate non-Markovian cancellation
+vec1 = (diffs(1,:));
+sec2 = (vec1>0);
+sec3 = (vec1<0);
+vec2 = 0*vec1; vec2(sec2) = vec1(sec2);
+vec3 = 0*vec1; vec3(sec3) = vec1(sec3);
+
+figure; plot(vec1," o");
+hold on
+plot(vec2," x")
+plot(vec3," x")
+
+xlabel(" time")
+ylabel(" entry magnitude")
+legend("first row of $\dot{X} - OX$", " only positive entries", " only negative entries",interpreter=" latex")
+
+O2 = (tX_b0(:,sec2))
