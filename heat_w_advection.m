@@ -310,8 +310,8 @@ best_approx_error_mPOD = zeros(nn,1);
 n_is__ = n_is(n,is);
 offset = cumsum(n_is__);
 
-for j = 1:nn
-% for j = nn:nn
+% for j = 1:nn
+for j = nn:nn
     n_ = ns(j);
     n_is_ = n_is(n_,is);
     nf_ = sum(n_is_)+Nu;
@@ -518,6 +518,9 @@ if do_data_recycling
 
     rel_proj_errors2 = vecwise_2norm(rVn_*rVn_'*X_b-X_b)./vecwise_2norm(X_b);
     plot(rel_proj_errors2,"DisplayName", "all snapshots - sPOD")
+
+        rel_proj_errors2 = vecwise_2norm(rVn_(:,1:end-1)*rVn_(:,1:end-1)'*X_b-X_b)./vecwise_2norm(X_b);
+    plot(rel_proj_errors2,"DisplayName", "all snapshots - sPOD -1")
 
 
     ylabel("relative projection error","Interpreter","latex", "FontSize",15)
