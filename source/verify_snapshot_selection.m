@@ -14,9 +14,12 @@ for jj=n:n
     plot(rel_proj_errors,"s","MarkerIndices",p,"DisplayName","recycled snapshots "+num2str(jj))
 end
 
-for jj = 1:n
+% for jj = 1:n
+for jj = 26:n
     [rVn_,~,~] = svd(X_b(:,p(1:jj)),"econ");
     rel_proj_errors_j = vecwise_2norm(rVn_*rVn_'*X_b-X_b)./vecwise_2norm(X_b);
 
-    plot(rel_proj_errors_j,"DisplayName", "all snapshots - slect POD - iteration "+num2str(jj))
+    plot(rel_proj_errors_j,"DisplayName", "all snapshots - select POD - iteration "+num2str(jj))
 end
+
+legend("show")

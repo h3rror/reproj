@@ -1,4 +1,4 @@
-function [O,A_inds,B_inds,condD] = opinf(dot_tX,tX,U,is,verbose)
+function [O,A_inds,B_inds,condD,D] = opinf(dot_tX,tX,U,is,verbose)
     % dot_tX: ROM state time derivative snapshots
     % tX: ROM state snapshots
     % is: array of polynomial degrees

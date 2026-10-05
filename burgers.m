@@ -176,7 +176,7 @@ for j = 1:nn
     dot_tX_ = dot_tX(1:n_,ks);
     U0_ = U0(:,ks);
 
-    [O,A_inds,B_inds,condD] = opinf(dot_tX_,tX0_,U0_,is,true);
+    [O,A_inds,B_inds,condD,D] = opinf(dot_tX_,tX0_,U0_,is,true);
     hA1_ = O(:,A_inds(1,1):A_inds(1,2));
     hA2_ = O(:,A_inds(2,1):A_inds(2,2));
     hB_ = O(:,B_inds(1,1):B_inds(1,2));
@@ -330,3 +330,28 @@ function x_1 = single_step(x_0,u_0,dt,f)
     x_1 = x_0 + dt*f(x_0,u_0);
 end
 
+%% plot deviations in projected snapshots from exact data
+
+% dot_tX_b = dot_tX_; wrong!
+% tX_b0 = tX0_; wrong!
+tO = tO_;
+
+% diffs = dot_tX_b - tO*tX_b0;
+diffs = dot_tX_b - tO*D;
+figure; plot(diffs', 'x')
+
+[Phi,Sigma,Psi] = svd(tX_b0,"econ"); 
+diffs2 = dot_tX_b*Psi/Sigma - tO*Phi;
+figure; plot(diffs2', 'x')
+
+%% plot snapshot data
+figure; plot(dot_tX_b', 'x')
+title("$\dot{X}$ plotted row-wise",Interpreter="latex")
+xlabel(" time")
+ylabel(" entry magnitude")
+
+
+figure; plot(tX_b0', 'x')
+title("${X}$ plotted row-wise",Interpreter="latex")
+xlabel(" time")
+ylabel(" entry magnitude")

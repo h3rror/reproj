@@ -8,4 +8,7 @@ function [rtX_b0,rVn_,p] = data_recycling(tX_b0_, X_b, Vn_)
 [p,~] = find(P(:,1:n_));
 [rVn_,~,~] = svd(X_b(:,p),"econ");
 
+%% verify visually minimization of largest snapshot projection error
+verify_snapshot_selection
+
 rtX_b0 = rVn_'*X_b(:,p);
