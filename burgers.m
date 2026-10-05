@@ -101,8 +101,11 @@ title("singular value decay")
 %% plot POD modes
 figure; hold on
 for i = 1:n
-    plot(Vn(:,i))
+% for i = 1:5
+    plot(Vn(:,i),'LineWidth', 1.8)
 end
+% set(gca, 'Visible', 'off')
+% ylim([-.6 .6])
 
 %% construct intrusive operators
 tA1 = precompute_rom_operator(F1X,Vn,1);

@@ -394,8 +394,8 @@ for j = 1:nn
         sf = @(x,u) sO_*x_vec(x);
 
 
-        % test_type = "train";
-        test_type = "worst-case";
+        test_type = "train";
+        % test_type = "worst-case";
         % test_type = "experimental";
 
         if test_type == "train"
@@ -515,6 +515,10 @@ if do_data_recycling
         % for jj=31:33
         plot(rel_proj_errors,"s","MarkerIndices",selects{jj},"DisplayName","recycled snapshots "+num2str(jj))
     end
+
+    rel_proj_errors2 = vecwise_2norm(rVn_*rVn_'*X_b-X_b)./vecwise_2norm(X_b);
+    plot(rel_proj_errors2,"DisplayName", "all snapshots - sPOD")
+
 
     ylabel("relative projection error","Interpreter","latex", "FontSize",15)
     xlabel("snapshot index","Interpreter","latex", "FontSize",15)
