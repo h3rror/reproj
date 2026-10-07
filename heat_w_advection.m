@@ -574,6 +574,11 @@ legend("Location","northeast")
 
 diffs = dot_tX_b - tO*tX_b0;
 figure; plot(diffs', 'x')
+legend("$\dot{X} - OX$ plotted row-wise",Interpreter="latex")
+
+hold on
+plot(V(:,n+1)'*(X_b(:,2:end)-X_b(:,1:end-1))/dt,"DisplayName","$V_{n+1}^T(X_1-X_0)/\Delta t")
+legend("show",Interpreter="latex")
 
 [Phi,Sigma,Psi] = svd(tX_b0,"econ"); 
 diffs2 = dot_tX_b*Psi/Sigma - tO*Phi;
